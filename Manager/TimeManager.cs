@@ -10,28 +10,18 @@ public class TimeManager : Single<TimeManager>
     //Register_Event : 
 
     float Cur_Value;
-    public enum E_TimeRegister_Kind
-    {
-
-    }
     DateTime Cur_UTC;
-    public bool Required_TimeSet = true;
+    public bool isNetwork_Time;
+    Coroutine Cor_Get_NetworkTime;
 
     public static event EventHandler Ev_Daily_Update;
     public static event EventHandler Ev_Weekly_Update;
 
     const int Difference_From_UTC = 9;
-    void Daily_Update()
+
+    public TimeManager()
     {
-        Ev_Daily_Update?.Invoke(this, EventArgs.Empty);
-    }
-    void Weekly_Update()
-    {
-        Ev_Weekly_Update?.Invoke(this, EventArgs.Empty);
-    }
-    private void Awake()
-    {
-        Required_TimeSet = true;
+        isNetwork_Time = false;
         Cur_Value = 0;
         StartCoroutine(Get_UTC());
     }
@@ -46,19 +36,25 @@ public class TimeManager : Single<TimeManager>
     }
     void OneSecond_Update()
     {
-        if (Required_TimeSet == false)
+        if (GameManager.Instance.Use_Network_Time)
         {
+            if (isNetwork_Time == true)
+            {
+                Check_Daily_Time();
+            }
+        }
+        else 
+        { 
             Check_Daily_Time();
         }
     }
+
+
     void Check_Daily_Time()
     {
         DateTime nextupdate_time = Get_Daily_Update().AddDays(1);
         if (Cur_UTC >= nextupdate_time)
         {
-            UserData.Daily_Update_Year = Cur_UTC.Year;
-            UserData.Daily_Update_Month = Cur_UTC.Month;
-            UserData.Daily_Update_Day = Cur_UTC.Day;
             Daily_Update();
             Check_Weekly_Time();
         }
@@ -70,7 +66,19 @@ public class TimeManager : Single<TimeManager>
             Weekly_Update();
         }
     }
-    IEnumerator Get_UTC()
+    void Daily_Update()
+    {
+        UserData.Daily_Update_Year = Cur_UTC.Year;
+        UserData.Daily_Update_Month = Cur_UTC.Month;
+        UserData.Daily_Update_Day = Cur_UTC.Day;
+
+        Ev_Daily_Update?.Invoke(this, EventArgs.Empty);
+    }
+    void Weekly_Update()
+    {
+        Ev_Weekly_Update?.Invoke(this, EventArgs.Empty);
+    }
+    IEnumerator Get_UTC(Action Ac_GetTime_Success = null, Action Ac_GetTime_Fail = null)
     {
         UnityWebRequest request = new UnityWebRequest();
         using (request = UnityWebRequest.Get("www.google.com"))
@@ -80,15 +88,47 @@ public class TimeManager : Single<TimeManager>
             if (request.result == UnityWebRequest.Result.ConnectionError)
             {
                 Debug.Log(request.error);
+                Ac_GetTime_Fail?.Invoke();
             }
             else
             {
                 string date = request.GetResponseHeader("date"); //이곳에서 반송된 데이터에 시간 데이터가 존재
                 Cur_UTC = DateTime.Parse(date).ToUniversalTime();
-                Required_TimeSet = false;
+                isNetwork_Time = true;
+                Ac_GetTime_Success?.Invoke();
             }
         }
     }
+
+    public void Get_NetworkTime_Start()
+    {
+        if (GameManager.Instance.Use_Network_Time == false)
+        {
+            return;
+        }
+        else
+        {
+            if (Cor_Get_NetworkTime == null)
+            {
+                Cor_Get_NetworkTime = StartCoroutine(Get_UTC());
+            }
+        }
+    }
+    public void Get_NetworkTime_Pause()
+    {
+        if (GameManager.Instance.Use_Network_Time == false)
+        {
+            return;
+        }
+        else
+        {
+            if (Cor_Get_NetworkTime == null)
+            {
+                Cor_Get_NetworkTime = StartCoroutine(Get_UTC());
+            }
+        }
+    }
+   
 }
 
 //using System;

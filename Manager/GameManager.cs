@@ -13,7 +13,8 @@ public class GameManager : Single<GameManager>
     public bool Use_Log_Popup;
     public bool Use_ErrorLog_Popup;
     public bool Use_Cheat;
-    public bool Use_NetworkLock;
+    public bool Use_Network_Lock;
+    public bool Use_Network_Time;
 
     [Header("Advertisement")]
     public bool Use_AD;
@@ -22,9 +23,50 @@ public class GameManager : Single<GameManager>
     [Header("Sound")]
     public bool Use_BGM_Fade;
 
+
+    public static bool isPaused = false;
+
+
     private void Start()
     {
 
+
+       
+
+
+    }
+    private void OnApplicationPause(bool pause)
+    {
+        if (pause)
+        {
+            // 앱이 일시정지될 때 수행할 작업
+            TimeManager.Instance.isNetwork_Time = false;
+            isPaused = true;
+        }
+        else
+        {
+            // 앱이 다시 시작될 때 수행할 작업
+            //일시정지 창 띄우기
+            isPaused = false;
+            if (Use_Network_Time)
+            {
+                TimeManager.Instance.Get_NetworkTime_Pause();
+            }
+        }
+    }
+    IEnumerator GameStart()
+    {
+        //시간 가져오고
+        WaitForEndOfFrame wait_frame = new WaitForEndOfFrame();
+        if (Use_Network_Time) 
+        {
+            TimeManager.Instance.Get_NetworkTime_Start();
+            while (TimeManager.Instance.isNetwork_Time == false)
+            {
+                yield return wait_frame;
+            }
+        }
+     
 
         //UD 세팅
         if (UserData_Load(out UserData) == false)
@@ -38,8 +80,6 @@ public class GameManager : Single<GameManager>
         //Addressable 세팅
 
         //로그인 확인
-
-
     }
 
 
