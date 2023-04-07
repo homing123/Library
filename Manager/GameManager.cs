@@ -29,11 +29,7 @@ public class GameManager : Single<GameManager>
 
     private void Start()
     {
-
-
-       
-
-
+        StartCoroutine(GameStart());
     }
     private void OnApplicationPause(bool pause)
     {
@@ -66,17 +62,28 @@ public class GameManager : Single<GameManager>
                 yield return wait_frame;
             }
         }
-     
 
         //UD 세팅
-        if (UserData_Load(out UserData) == false)
+        Data_User userdata = UserData_Load();
+        if (userdata == null)
         {
-
+            UserData_Reset();
+            UserData_Save();
+        }
+        else
+        {
+            Set_UserDatat(userdata);
         }
 
         //StreamingData 세팅
-        Data.Instance.Read_StreamingData_Async();
-
+        bool isStreamLoad_Success = false;
+        Data.Instance.Read_StreamingData_Async(() => isStreamLoad_Success = true);
+        while (isStreamLoad_Success == false)
+        {
+            float Cur_StreamLoad_Per = Data.Instance.Get_StreamingDataRead_Percent();
+            Debug.Log(Cur_StreamLoad_Per);
+            yield return wait_frame;
+        }
         //Addressable 세팅
 
         //로그인 확인

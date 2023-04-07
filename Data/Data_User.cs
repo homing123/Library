@@ -6,6 +6,12 @@ using static Data_User;
 public class Data_User
 {
     public static Data_User UserData;
+    public static void Set_UserDatat(Data_User userdata)
+    {
+        UserData = userdata;
+
+    }
+
     public int Daily_Update_Year; //일일갱신 년도
     public int Daily_Update_Month; //일일갱신 월
     public int Daily_Update_Day; //일일갱신 일
@@ -18,22 +24,31 @@ public class Data_User
     public bool BGM_On;
     public bool Vibration_On;
 
-    public Inventory[] Arr_Inventory;
+    public Inventory[] Arr_Inventory; //인벤 리스트
+
+    public List<Quest> L_Quest; //진행중인 퀘스트
+    public List<int> L_Clear_Quest; //클리어한 퀘스트
+
+    public List<User_Reservation_Time> L_Reservation_Time; //예약시간 리스트
+
     public class Inventory 
     {
         public E_ItemKind Item_Kind;
         public int Item_ID;
         public int Count;
-
     }
     public class Quest
     {
         public int Quest_ID;
         public int Progress;
     }
+    public class User_Reservation_Time
+    {
+        public string End_Time;
+        public E_ReservationTime_Kind Key;
+        public int Idx;
+    }
 
-    public List<Quest> L_Quest;
-    public List<int> L_Clear_Quest;
 
 }
 
@@ -101,18 +116,16 @@ public class UD_Func
             File.WriteAllText(Path.Combine(Application.persistentDataPath, UserData_FileName), JsonUtility.ToJson(UserData));
         }
     }
-    public static bool UserData_Load(out Data_User userdata)
+    public static Data_User UserData_Load()
     {
         string path = Path.Combine(Application.persistentDataPath, UserData_FileName);
         if (File.Exists(path))
         {
-            userdata = JsonUtility.FromJson<Data_User>(File.ReadAllText(path));
-            return true;
+            return JsonUtility.FromJson<Data_User>(File.ReadAllText(path)); ;
         }
         else
         {
-            userdata = null;
-            return false;
+            return null;
         }
     }
     public static void UserData_Reset()

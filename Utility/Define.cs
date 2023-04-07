@@ -17,7 +17,9 @@ public enum E_QuestType
 }
 public enum E_ProductState
 {
-
+    None,
+    Purchase_Available = 1, //구매가능
+    Purchase_Not_Available = 2, //구매불가능
 }
 public enum E_ProductType
 {
@@ -59,6 +61,15 @@ public enum E_AdKind
     Banner,
     Interstitial,
     Reward_Video
+}
+public enum E_ReservationTime_State
+{
+    Before,
+    After,
+}
+public enum E_ReservationTime_Kind
+{
+    Store
 }
 
 
@@ -130,8 +141,10 @@ public class Single<T> : MonoBehaviour where T : MonoBehaviour
         m_ShuttingDown = true;
     }
 }
+//인스턴스로 부르면 싱글톤개념으로 세팅해서 생성됨
+//세팅함수를 공
 
-public class Single_Data<T> where T : Single_Data<T>
+public class Single_Data<T> where T : Single_Data<T>, new()
 {
     static T m_Instance;
     public static T Instance
@@ -140,18 +153,31 @@ public class Single_Data<T> where T : Single_Data<T>
         {
             if (m_Instance == null)
             {
-                m_Instance = Data_Reader.ReadData<T>(typeof(T).Name.Remove(0, 5));
+                m_Instance = Data_Reader.ReadData<T>(Get_Name()); ;
                 m_Instance.Setting();
             }
             return m_Instance;
         }
     }
-
-    public static T Set_Instance
+    static string Name;
+    public static string Get_Name()
     {
-        set
+        if (Name == null) 
         {
-            m_Instance = value;
+            Name = typeof(T).Name.Remove(0, 5);
+        }
+        return Name;
+    }
+    public static T Get_New()
+    {
+        if (m_Instance == null)
+        {
+            m_Instance = new T();
+            return m_Instance;
+        }
+        else
+        {
+            return null;
         }
     }
     public virtual void Setting()

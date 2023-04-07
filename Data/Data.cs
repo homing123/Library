@@ -38,9 +38,13 @@ public class Data : Single<Data>
 
     #region Streaming
     List<E_DataRead_State> L_DataAsync = new List<E_DataRead_State>();
-
+    List<Task> L_Task = new List<Task>();
     public float Get_StreamingDataRead_Percent()
     {
+        if(L_DataAsync==null || L_DataAsync.Count == 0)
+        {
+            return 0;
+        }
         int success_count = 0;
         for(int i = 0; i < L_DataAsync.Count; i++)
         {
@@ -51,26 +55,42 @@ public class Data : Single<Data>
         }
         return (float)success_count / L_DataAsync.Count * 100;
     }
-    public async void Read_StreamingData_Async()
+    public async void Read_StreamingData_Async(Action Ac_Success = null)
     {
         L_DataAsync.Clear();
-        L_DataAsync.Add(E_DataRead_State.None);
-        L_DataAsync.Add(E_DataRead_State.None);
-        List<Task> L_Task = new List<Task>();
-        L_Task.Add(Data_Reader.ReadData_Async<Data_Quest>(Data_Quest.FileName, null, () =>
-        {
-            L_DataAsync[0] = E_DataRead_State.Success;
-        }
-        )); 
-        L_Task.Add(Data_Reader.ReadData_Async<Data_Product>(Data_Product.FileName, null, () => 
-        {
-            L_DataAsync[1] = E_DataRead_State.Success;
-        }
-         ));
-        await Task.WhenAll(L_Task);
 
+        int idx = 0;
+
+        #region 데이터 추가구간
+        L_Task.Add(new Task(() => { Read<Data_Quest>(Data_Quest.FileName, ref idx); }));
+        L_Task.Add(new Task(() => { Read<Data_Product>(Data_Product.FileName, ref idx); }));
+        #endregion
+
+        for (int i = 0; i < L_Task.Count; i++)
+        {
+            L_Task[i].Start();
+        }
+
+        await Task.WhenAll(L_Task);
+        L_Task.Clear();
+
+        Ac_Success?.Invoke();
         //완료처리
         Debug.Log("완료");
+    }
+    void Read<T>(string filename, ref int idx)
+    {
+        if (Data_Quest.Get_New() != null)
+        {
+            int _idx = idx;
+            idx++;
+
+            L_DataAsync.Add(E_DataRead_State.None);
+            L_Task.Add(Data_Reader.ReadData_Async<T>(filename, null,() =>
+            {
+                L_DataAsync[_idx] = E_DataRead_State.Success;
+            }));
+        }
     }
     #endregion
     #region Addressable
@@ -161,13 +181,15 @@ public class D_Quest
     }
 }
 #endregion
-#region Store
+#region Product
 public class Data_Product : Single_Data<Data_Product>
 {
     readonly public static string FileName = "Product";
     readonly public static string URL = "";
 
     public int[] M_ID;
+    public bool[] Release;
+    public E_ProductType[] Product_Type;
     public E_ItemKind[] Price_Kind_0, Price_Kind_1, Price_Kind_2;
     public int[] Price_ID_0, Price_ID_1, Price_ID_2;
     public int[] Price_Value_0, Price_Value_1, Price_Value_2;
@@ -176,23 +198,71 @@ public class Data_Product : Single_Data<Data_Product>
     public int[] Product_Value_0, Product_Value_1, Product_Value_2;
 
     Dictionary<int, D_Product> D_Product;
+    Dictionary<E_ProductType, List<D_Product>> D_ProductType;
     public override void Setting()
     {
+        if (D_Product == null)
+        {
+            D_Product = new Dictionary<int, D_Product>();
+            D_ProductType = new Dictionary<E_ProductType, List<D_Product>>();
+            foreach (E_ProductType value in Enum.GetValues(typeof(E_ProductType)))
+            {
+                D_ProductType.Add(value, new List<D_Product>());
+            }
+        }
+        for (int i = 0; i < M_ID.Length; i++)
+        {
+            D_Product Cur_Product = new D_Product(
+
+                M_ID[i],
+                Release[i],
+                Product_Type[i],
+                new E_ItemKind[3] { Price_Kind_0[i], Price_Kind_1[i], Price_Kind_2[i] },
+                new int[3] { Price_ID_0[i], Price_ID_1[i], Price_ID_2[i]},
+                new int[3] { Price_Value_0[i], Price_Value_1[i], Price_Value_2[i] },
+
+                new E_ItemKind[3] { Product_Kind_0[i], Product_Kind_1[i], Product_Kind_2[i] },
+                new int[3] { Product_ID_0[i], Product_ID_1[i], Product_ID_2[i] },
+                new int[3] { Product_Value_0[i], Product_Value_1[i], Product_Value_2[i] }
+
+                );
+            D_Product.Add(M_ID[i], Cur_Product);
+            D_ProductType[Product_Type[i]].Add(Cur_Product);
+        }
     }
     public D_Product Get_Product(int product_id)
     {
         return D_Product[product_id];
     }
+    public List<D_Product> Get_Product_Type(E_ProductType type)
+    {
+        return D_ProductType[type];
+    }
 }
 public class D_Product
 {
     public int M_ID;
+    public bool Release;
+    public E_ProductType Product_Type;
     public E_ItemKind[] Price_Kind;
     public int[] Price_ID;
     public int[] Price_Value;
     public E_ItemKind[] Product_Kind;
     public int[] Product_ID;
     public int[] Product_Value;
+
+    public D_Product(int iD, bool release, E_ProductType product_Type, E_ItemKind[] price_Kind, int[] price_ID, int[] price_Value, E_ItemKind[] product_Kind, int[] product_ID, int[] product_Value)
+    {
+        M_ID = iD;
+        Release = release;
+        Product_Type = product_Type;
+        Price_Kind = price_Kind;
+        Price_ID = price_ID;
+        Price_Value = price_Value;
+        Product_Kind = product_Kind;
+        Product_ID = product_ID;
+        Product_Value = product_Value;
+    }
 }
 #endregion
 #region Item

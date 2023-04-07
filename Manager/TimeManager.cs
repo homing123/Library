@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using System;
 using UnityEngine.Networking;
@@ -6,8 +7,20 @@ using static Data_User;
 using static UD_Func;
 public class TimeManager : Single<TimeManager>
 {
-    //Trigger_Event : Daily, Weekly, Month
-    //Register_Event : 
+    public class ReservationTime_Info
+    {
+        public DateTime Reservation_Time;
+        public int Remaining_Time;
+        public E_ReservationTime_State Cur_State;
+        public ReservationTime_Info(User_Reservation_Time user_reservation_time)
+        {
+            Reservation_Time = DateTime.Parse(user_reservation_time.End_Time);
+            Remaining_Time = (int)TimeManager.Instance.Get_RemainingTime(Reservation_Time).TotalSeconds;
+            Cur_State = Remaining_Time > 0 ? E_ReservationTime_State.Before : E_ReservationTime_State.After;
+        }
+    }
+
+    public Dictionary<(E_ReservationTime_Kind kind, int idx), ReservationTime_Info> D_ReservationTime_Info;
 
     float Cur_Value;
     DateTime Cur_UTC;
@@ -19,14 +32,20 @@ public class TimeManager : Single<TimeManager>
 
     const int Difference_From_UTC = 9;
 
+    
+
     public TimeManager()
     {
         isNetwork_Time = false;
         Cur_Value = 0;
-        StartCoroutine(Get_UTC());
     }
     private void Update()
     {
+        if (UserData == null)
+        {
+            return;
+        }
+
         Cur_Value += Time.unscaledDeltaTime;
         if (Cur_Value >= 1)
         {
@@ -47,7 +66,10 @@ public class TimeManager : Single<TimeManager>
         { 
             Check_Daily_Time();
         }
+
+        
     }
+
 
 
     void Check_Daily_Time()
@@ -127,6 +149,11 @@ public class TimeManager : Single<TimeManager>
                 Cor_Get_NetworkTime = StartCoroutine(Get_UTC());
             }
         }
+    }
+
+    public TimeSpan Get_RemainingTime(DateTime time)
+    {
+        return time - Cur_UTC;
     }
    
 }

@@ -9,6 +9,29 @@ public class PurchaseManager : Single<PurchaseManager>
 
     public static event EventHandler Ev_Purchase;
 
+    public Dictionary<int, E_ProductState> D_ProductState;
+    public PurchaseManager()
+    {
+        D_ProductState = new Dictionary<int, E_ProductState>();
+        //Renewal_D_ProductState 이거 이벤트등록해야하는데 어디에 해야하지?
+    }
+    void Renewal_D_ProductState(object sender=null, EventArgs args = null)
+    {
+        D_Product Cur_Product;
+        for (int i = 0; i < Data_Product.Instance.M_ID.Length; i++)
+        {
+            Cur_Product = Data_Product.Instance.Get_Product(Data_Product.Instance.M_ID[i]);
+            if (Cur_Product.Release == true)
+            {
+                D_ProductState.Add(Data_Product.Instance.M_ID[i], Check_State(Cur_Product));
+            }
+        }
+    }
+    E_ProductState Check_State(D_Product cur_product)
+    {
+        return E_ProductState.Purchase_Available;
+    }
+
     //구매가능한지 확인하는 함수
     public E_Check_Available_Purchase_Info Check_Available_Purchase(D_Product cur_product)
     {
