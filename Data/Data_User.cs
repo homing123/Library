@@ -19,7 +19,7 @@ public class Data_User
     public int Attendance_Count; //출석일수
     public int Access_Time; //접속시간 (초)
 
-    public E_Language_Kind Language_Kind; //언어 종류
+    public E_Language Language_Kind; //언어 종류
     public bool Sound_On;
     public bool BGM_On;
     public bool Vibration_On;

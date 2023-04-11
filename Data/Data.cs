@@ -305,23 +305,74 @@ public class Data_Language : Single_Data<Data_Language>
 
     public int[] M_ID;
     public string[] Kor;
+    public string[] Eng;
+
+    Dictionary<int, string> D_Cur_Lang;
+    Dictionary<int, string> D_Kor;
+    Dictionary<int, string> D_Eng;
+    public override void Setting()
+    {
+        if (D_Kor == null)
+        {
+            D_Kor = new Dictionary<int, string>();
+            D_Eng = new Dictionary<int, string>();
+            for (int i = 0; i < M_ID.Length; i++)
+            {
+                D_Kor.Add(M_ID[i], Kor[i]);
+                D_Eng.Add(M_ID[i], Eng[i]);
+            }
+
+            //해당 이벤트 등록은 치트버전에선 데이터 새로 받아오는 경우때문에 해제해줄 필요가 있으나
+            //정식버전에선 해제해줄 필요가 없다
+            GameManager.Ev_Language_Change += Change_Language_Kind;
+        }
+
+        if (UserData == null)
+        {
+            Change_Language_Kind(null, Application.systemLanguage.Get_LanguageKind());
+        }
+        else
+        {
+            Change_Language_Kind(null, UserData.Language_Kind);
+        }
+    }
+    void Change_Language_Kind(object sender, E_Language kind)
+    {
+        switch (kind)
+        {
+            case E_Language.Kor:
+                D_Cur_Lang = D_Kor;
+                break;
+            case E_Language.Eng:
+                D_Cur_Lang = D_Eng;
+                break;
+        }
+    }
+    public string Get_Lang(int lang_id)
+    {
+        return D_Cur_Lang[lang_id];
+    }
 }
-public class D_Language
-{
-    public int M_ID;
-    public string Kor;
-}
+
 #endregion
 #region Image
 public class Data_Image : Single_Data<Data_Image>
 {
     readonly public static string FileName = "Image";
     readonly public static string URL = "";
-    Dictionary<int, Sprite> D_Image;
-
 
     public int[] M_ID;
     public string[] Path;
+
+    Dictionary<int, Sprite> D_Image;
+
+    public override void Setting()
+    {
+        for (int i = 0; i < M_ID.Length; i++)
+        {
+
+        }
+    }
 }
 public class D_Image
 {
@@ -335,12 +386,19 @@ public class Data_Audio : Single_Data<Data_Audio>
 {
     readonly public static string FileName = "Audio";
     readonly public static string URL = "";
-    Dictionary<int, AudioClip> D_Audio;
-
 
     public int[] M_ID;
     public string[] Path;
 
+    Dictionary<int, AudioClip> D_Audio;
+
+    public override void Setting()
+    {
+        for (int i = 0; i < M_ID.Length; i++)
+        {
+
+        }
+    }
     public AudioClip Get_Audio(int audio_id)
     {
         return D_Audio[audio_id];

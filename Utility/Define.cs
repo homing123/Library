@@ -1,5 +1,4 @@
 using UnityEngine;
-
 public enum E_QuestState
 {
     None = 0, //없는
@@ -47,10 +46,15 @@ public enum E_DataRead_State
     Success
 }
 
-public enum E_Language_Kind 
+public enum E_Language
 {
     Kor=0,
     Eng=1,
+}
+public enum E_Text_Kind
+{
+    Text = 0,
+    Lang_ID = 1,
 }
 public enum E_ADSDK
 {
@@ -69,7 +73,7 @@ public enum E_ReservationTime_State
 }
 public enum E_ReservationTime_Kind
 {
-    Store
+    Store,
 }
 
 
@@ -82,8 +86,10 @@ public class Define : MonoBehaviour
 
     //광고
     public static float AD_ReLoad_Time;
+
 }
 
+#region Singleton
 public class Single<T> : MonoBehaviour where T : MonoBehaviour
 {
     // Check to see if we're about to be destroyed
@@ -144,7 +150,7 @@ public class Single<T> : MonoBehaviour where T : MonoBehaviour
 //인스턴스로 부르면 싱글톤개념으로 세팅해서 생성됨
 //세팅함수를 공
 
-public class Single_Data<T> where T : Single_Data<T>, new()
+public abstract class Single_Data<T> where T : Single_Data<T>, new()
 {
     static T m_Instance;
     public static T Instance
@@ -180,9 +186,25 @@ public class Single_Data<T> where T : Single_Data<T>, new()
             return null;
         }
     }
-    public virtual void Setting()
-    {
-
-    }
+    public abstract void Setting();
 
 }
+#endregion
+
+#region extends
+public static class Ex_Define
+{
+    public static E_Language Get_LanguageKind(this SystemLanguage systemlanguage)
+    {
+        switch (systemlanguage)
+        {
+            case SystemLanguage.Korean:
+                return E_Language.Kor;
+            default:
+                return E_Language.Eng;
+        }
+    }
+}
+
+
+#endregion

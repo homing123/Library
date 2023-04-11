@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using System;
 using static Data_User;
@@ -91,12 +90,12 @@ public class GameManager : Single<GameManager>
 
 
     #region 매니저 없는 이벤트
-    public static event EventHandler<E_Language_Kind> Ev_Language_Change;
+    public static event EventHandler<E_Language> Ev_Language_Change;
 
     public static event EventHandler Ev_Vibration_On;
     public static event EventHandler Ev_Vibration_Off;
 
-    public static void Language_Change(E_Language_Kind lang_kind)
+    public static void Language_Change(E_Language lang_kind)
     {
         if (UserData.Language_Kind != lang_kind)
         {
