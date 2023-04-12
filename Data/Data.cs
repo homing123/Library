@@ -373,6 +373,10 @@ public class Data_Image : Single_Data<Data_Image>
 
         }
     }
+    public Sprite Get_Image(int image_id)
+    {
+        return D_Image[image_id];
+    }
 }
 public class D_Image
 {

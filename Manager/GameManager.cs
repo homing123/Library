@@ -25,7 +25,6 @@ public class GameManager : Single<GameManager>
 
     public static bool isPaused = false;
 
-
     private void Start()
     {
         StartCoroutine(GameStart());
@@ -71,7 +70,7 @@ public class GameManager : Single<GameManager>
         }
         else
         {
-            Set_UserDatat(userdata);
+            Set_UserData(userdata);
         }
 
         //StreamingData ¼¼ÆÃ

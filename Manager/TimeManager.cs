@@ -23,7 +23,7 @@ public class TimeManager : Single<TimeManager>
     public Dictionary<(E_ReservationTime_Kind kind, int idx), ReservationTime_Info> D_ReservationTime_Info;
 
     float Cur_Value;
-    DateTime Cur_UTC;
+    public DateTime Cur_UTC;
     public bool isNetwork_Time;
     Coroutine Cor_Get_NetworkTime;
 

@@ -47,8 +47,6 @@ public class AdManager : Single<AdManager>
             }
         }
     }
-
-
     private void Update()
     {
         if (GameManager.Instance.Use_AD == false)

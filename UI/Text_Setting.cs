@@ -1,22 +1,58 @@
 using UnityEngine;
-using UnityEngine.UI;
-using static Define;
 
 public class Text_Setting : TMPro.TextMeshPro
 {
-    [SerializeField] int m_Lang_ID;
-    [SerializeField] Text m_Text;
-    [SerializeField] E_Text_Kind m_Cur_TextKind;
+    [SerializeField] E_Text_Kind m_TextKind;
+    [SerializeField] int m_Language_ID;
 
     protected override void OnEnable()
     {
         base.OnEnable();
+        GameManager.Ev_Language_Change += Language_Change;
+        switch (m_TextKind)
+        {
+            case E_Text_Kind.Text:
+                break;
+            case E_Text_Kind.Lang_ID:
+                text = Data_Language.Instance.Get_Lang(m_Language_ID);
+                break;
+        }
     }
     protected override void OnDisable()
     {
         base.OnEnable();
-        Debug.Log("b" + this.transform.name);
+        GameManager.Ev_Language_Change -= Language_Change;
+        switch (m_TextKind)
+        {
+            case E_Text_Kind.Text:
+                break;
+            case E_Text_Kind.Lang_ID:
+                break;
+        }
     }
+
+    void Language_Change(object sender, E_Language kind)
+    {
+        switch (m_TextKind)
+        {
+            case E_Text_Kind.Text:
+                break;
+            case E_Text_Kind.Lang_ID:
+                text = Data_Language.Instance.Get_Lang(m_Language_ID);
+                break;
+        }
+    }
+
+
+    public void Change_Text(string str)
+    {
+        text = str;
+    }
+    public void Change_Lang_ID(int lang_id)
+    {
+        text = Data_Language.Instance.Get_Lang(lang_id);
+    }
+
 
 }
     

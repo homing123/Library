@@ -6,10 +6,9 @@ using static Data_User;
 public class Data_User
 {
     public static Data_User UserData;
-    public static void Set_UserDatat(Data_User userdata)
+    public static void Set_UserData(Data_User userdata)
     {
         UserData = userdata;
-
     }
 
     public int Daily_Update_Year; //일일갱신 년도
@@ -119,6 +118,8 @@ public class UD_Func
     public static Data_User UserData_Load()
     {
         string path = Path.Combine(Application.persistentDataPath, UserData_FileName);
+        Debug.Log(path);
+
         if (File.Exists(path))
         {
             return JsonUtility.FromJson<Data_User>(File.ReadAllText(path)); ;
@@ -128,9 +129,24 @@ public class UD_Func
             return null;
         }
     }
+    public static void UserData_Delete()
+    {
+        string path = Path.Combine(Application.persistentDataPath, UserData_FileName);
+        if (File.Exists(path))
+        {
+            File.Delete(path);
+        }
+        else
+        {
+
+        }
+    }
     public static void UserData_Reset()
     {
         UserData = new Data_User();
+        UserData.Daily_Update_Year = TimeManager.Instance.Cur_UTC.Year;
+        UserData.Daily_Update_Month = TimeManager.Instance.Cur_UTC.Month;
+        UserData.Daily_Update_Day = TimeManager.Instance.Cur_UTC.Day;
     }
     #endregion
 }
