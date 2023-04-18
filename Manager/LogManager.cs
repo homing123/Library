@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class LogManager : Single<LogManager>
+public class LogManager : SingleMono<LogManager>
 {
     public LogManager()
     {
@@ -22,7 +22,7 @@ public class LogManager : Single<LogManager>
         }
     }
 
-    public void Log(string log)
+    public static void Log(string log)
     {
         if (GameManager.Instance.Use_Log)
         {

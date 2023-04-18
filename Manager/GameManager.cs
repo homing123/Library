@@ -1,11 +1,12 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using System;
 using static Data_User;
 using static UD_Func;
 
 
-public class GameManager : Single<GameManager>
+public class GameManager : SingleMono<GameManager>
 {
 
     public bool Use_Log;
@@ -79,14 +80,12 @@ public class GameManager : Single<GameManager>
         while (isStreamLoad_Success == false)
         {
             float Cur_StreamLoad_Per = Data.Instance.Get_StreamingDataRead_Percent();
-            Debug.Log(Cur_StreamLoad_Per);
             yield return wait_frame;
         }
         //Addressable 세팅
 
         //로그인 확인
     }
-
 
     #region 매니저 없는 이벤트
     public static event EventHandler<E_Language> Ev_Language_Change;

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using static Data_User;
 using static UD_Func;
-public class PurchaseManager : Single<PurchaseManager>
+public class PurchaseManager : SingleMono<PurchaseManager>
 {
     //Trigger_Event : Buy, Sell
     //Register_Event : 
@@ -12,21 +12,33 @@ public class PurchaseManager : Single<PurchaseManager>
     public Dictionary<int, E_ProductState> D_ProductState;
     public PurchaseManager()
     {
-        D_ProductState = new Dictionary<int, E_ProductState>();
+        UserData_Set_Action(Set_D_ProductState);
         //Renewal_D_ProductState 이거 이벤트등록해야하는데 어디에 해야하지?
     }
-    void Renewal_D_ProductState(object sender=null, EventArgs args = null)
+    void Set_D_ProductState()
     {
-        D_Product Cur_Product;
+        D_ProductState = new Dictionary<int, E_ProductState>();
         for (int i = 0; i < Data_Product.Instance.M_ID.Length; i++)
         {
-            Cur_Product = Data_Product.Instance.Get_Product(Data_Product.Instance.M_ID[i]);
+            D_Product Cur_Product = Data_Product.Instance.Get_Product(Data_Product.Instance.M_ID[i]);
             if (Cur_Product.Release == true)
             {
                 D_ProductState.Add(Data_Product.Instance.M_ID[i], Check_State(Cur_Product));
             }
         }
     }
+    void Update_D_ProductState(object sender = null, EventArgs args = null)
+    {
+        if(D_ProductState != null)
+        {
+            foreach(KeyValuePair<int,E_ProductState> keys in D_ProductState)
+            {
+                D_Product Cur_Product = Data_Product.Instance.Get_Product(keys.Key);
+                D_ProductState[keys.Key] = Check_State(Cur_Product);
+            }
+        }
+    }
+   
     E_ProductState Check_State(D_Product cur_product)
     {
         return E_ProductState.Purchase_Available;
@@ -45,8 +57,13 @@ public class PurchaseManager : Single<PurchaseManager>
             switch (cur_product.Price_Kind[i])
             {
                 case E_ItemKind.Ad:
+                    if (AdManager.Instance.Check_isLoad(E_AdKind.Reward_Video) == false)
+                    {
+                        return E_Check_Available_Purchase_Info.No_Ads;
+                    }
                     break;
                 case E_ItemKind.InAppPurchasing:
+
                     break;
             }
             Inventory User_Inven = Inven_Get_Item(cur_product.Price_Kind[i], cur_product.Price_Value[i]);

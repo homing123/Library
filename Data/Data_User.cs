@@ -1,15 +1,21 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.IO;
+using System;
 using static Data_User;
+using static UD_Func;
 
 public class Data_User
 {
     public static Data_User UserData;
+    public static event EventHandler Ev_UserData_Set;
     public static void Set_UserData(Data_User userdata)
     {
         UserData = userdata;
+        Ev_UserData_Set?.Invoke(UserData, EventArgs.Empty);
     }
+
+    public E_LoginState LoginState;
 
     public int Daily_Update_Year; //일일갱신 년도
     public int Daily_Update_Month; //일일갱신 월
@@ -147,6 +153,17 @@ public class UD_Func
         UserData.Daily_Update_Year = TimeManager.Instance.Cur_UTC.Year;
         UserData.Daily_Update_Month = TimeManager.Instance.Cur_UTC.Month;
         UserData.Daily_Update_Day = TimeManager.Instance.Cur_UTC.Day;
+    }
+    public static void UserData_Set_Action(Action Ac_UD_Set)
+    {
+        if(UserData == null)
+        {
+            Ev_UserData_Set += (sender, args) => { Ac_UD_Set?.Invoke(); };
+        }
+        else
+        {
+            Ac_UD_Set?.Invoke();
+        }
     }
     #endregion
 }

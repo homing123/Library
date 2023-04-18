@@ -11,7 +11,7 @@ using UnityEngine.Networking;
 
 using static Data_User;
 
-public class Data : Single<Data>
+public class Data : SingleMono<Data>
 {
     public static event EventHandler Ev_UserData_Save;
     public static event EventHandler Ev_UserData_Change;
@@ -76,7 +76,7 @@ public class Data : Single<Data>
 
         Ac_Success?.Invoke();
         //완료처리
-        Debug.Log("완료");
+        LogManager.Log("Read_StreamingData_Async Complete");
     }
     void Read<T>(string filename, ref int idx)
     {
@@ -281,6 +281,23 @@ public class Data_Item : Single_Data<Data_Item>
     Dictionary<(E_ItemKind, int), D_Item> D_Item;
     public override void Setting()
     {
+        if (D_Item == null)
+        {
+            D_Item = new Dictionary<(E_ItemKind, int), D_Item>();
+        }
+        for(int i = 0; i < Item_ID.Length; i++) 
+        {
+            D_Item Cur_Item = new D_Item(
+                Item_Kind[i],
+                Item_ID[i],
+                Image[i],
+                new E_ItemKind[1] {Sell_Item_Kind_0[i]},
+                new int[1] {Sell_Item_ID_0[i]},
+                new int[1] {Sell_Item_Value_0[i]}
+                );
+
+            D_Item.Add((Item_Kind[i], Item_ID[i]), Cur_Item);
+        }
     }
     public D_Item Get_Item(E_ItemKind item_kind, int item_id)
     {
@@ -295,6 +312,16 @@ public class D_Item
     public E_ItemKind[] Sell_Item_Kind;
     public int[] Sell_Item_ID;
     public int[] Sell_Item_Value;
+
+    public D_Item(E_ItemKind item_Kind, int item_ID, int image, E_ItemKind[] sell_Item_Kind, int[] sell_Item_ID, int[] sell_Item_Value)
+    {
+        Item_Kind = item_Kind;
+        Item_ID = item_ID;
+        Image = image;
+        Sell_Item_Kind = sell_Item_Kind;
+        Sell_Item_ID = sell_Item_ID;
+        Sell_Item_Value = sell_Item_Value;
+    }
 }
 #endregion
 #region Language
@@ -368,9 +395,13 @@ public class Data_Image : Single_Data<Data_Image>
 
     public override void Setting()
     {
+        if (D_Image == null)
+        {
+            D_Image = new Dictionary<int, Sprite>();
+        }
         for (int i = 0; i < M_ID.Length; i++)
         {
-
+            //어드레서블 사용
         }
     }
     public Sprite Get_Image(int image_id)
@@ -383,6 +414,11 @@ public class D_Image
     public int M_ID;
     public string Path;
 
+    public D_Image(int iD, string path)
+    {
+        M_ID = iD;
+        Path = path;
+    }
 }
 #endregion
 #region Audio
@@ -398,9 +434,13 @@ public class Data_Audio : Single_Data<Data_Audio>
 
     public override void Setting()
     {
+        if(D_Audio == null)
+        {
+            D_Audio = new Dictionary<int, AudioClip>();
+        }
         for (int i = 0; i < M_ID.Length; i++)
         {
-
+            //어드레서블 사용
         }
     }
     public AudioClip Get_Audio(int audio_id)

@@ -5,20 +5,9 @@ using System;
 using UnityEngine.Networking;
 using static Data_User;
 using static UD_Func;
-public class TimeManager : Single<TimeManager>
+public class TimeManager : SingleMono<TimeManager>
 {
-    public class ReservationTime_Info
-    {
-        public DateTime Reservation_Time;
-        public int Remaining_Time;
-        public E_ReservationTime_State Cur_State;
-        public ReservationTime_Info(User_Reservation_Time user_reservation_time)
-        {
-            Reservation_Time = DateTime.Parse(user_reservation_time.End_Time);
-            Remaining_Time = (int)TimeManager.Instance.Get_RemainingTime(Reservation_Time).TotalSeconds;
-            Cur_State = Remaining_Time > 0 ? E_ReservationTime_State.Before : E_ReservationTime_State.After;
-        }
-    }
+
 
     public Dictionary<(E_ReservationTime_Kind kind, int idx), ReservationTime_Info> D_ReservationTime_Info;
 
@@ -38,7 +27,33 @@ public class TimeManager : Single<TimeManager>
     {
         isNetwork_Time = false;
         Cur_Value = 0;
+
+        UserData_Set_Action(Set_D_ReservationTime);
     }
+
+    void Set_D_ReservationTime()
+    {
+        D_ReservationTime_Info = new Dictionary<(E_ReservationTime_Kind kind, int idx), ReservationTime_Info>();
+        for (int i = 0; i < UserData.L_Reservation_Time.Count; i++)
+        {
+            User_Reservation_Time cur_user_reservation = UserData.L_Reservation_Time[i];
+            ReservationTime_Info info = new ReservationTime_Info(cur_user_reservation);
+            D_ReservationTime_Info.Add((cur_user_reservation.Key, cur_user_reservation.Idx), info);
+        }
+    }
+    void Update_D_ReservationTime()
+    {
+        if (D_ReservationTime_Info == null)
+        {
+            foreach (KeyValuePair<(E_ReservationTime_Kind kind, int idx), ReservationTime_Info> keys in D_ReservationTime_Info)
+            {
+                ReservationTime_Info info = D_ReservationTime_Info[(keys.Key.kind, keys.Key.idx)];
+                info.Remaining_Time = Get_RemainingTime(info.Reservation_Time);
+                info.Cur_State = info.Remaining_Time > 0 ? E_ReservationTime_State.Before : E_ReservationTime_State.After;
+            }
+        }
+    }
+  
     private void Update()
     {
         if (UserData == null)
@@ -60,14 +75,14 @@ public class TimeManager : Single<TimeManager>
             if (isNetwork_Time == true)
             {
                 Check_Daily_Time();
+                Update_D_ReservationTime();
             }
         }
         else 
         { 
             Check_Daily_Time();
+            Update_D_ReservationTime();
         }
-
-        
     }
 
 
@@ -109,7 +124,7 @@ public class TimeManager : Single<TimeManager>
 
             if (request.result == UnityWebRequest.Result.ConnectionError)
             {
-                Debug.Log(request.error);
+                LogManager.Log("Get_UTC Error : " + request.error);
                 Ac_GetTime_Fail?.Invoke();
             }
             else
@@ -151,9 +166,9 @@ public class TimeManager : Single<TimeManager>
         }
     }
 
-    public TimeSpan Get_RemainingTime(DateTime time)
+    public int Get_RemainingTime(DateTime time)
     {
-        return time - Cur_UTC;
+        return (int)(time - Cur_UTC).TotalSeconds;
     }
    
 }

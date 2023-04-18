@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 using System.Net.NetworkInformation;
 
-public class NetworkManager : Single<NetworkManager>
+public class NetworkManager : SingleMono<NetworkManager>
 {
     public  bool isNetwork_Connect;
     public static event EventHandler Ev_Network_Connect;

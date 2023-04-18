@@ -3,7 +3,7 @@ using UnityEngine;
 using System;
 using static Define;
 
-public class AdManager : Single<AdManager>
+public class AdManager : SingleMono<AdManager>
 {
     public I_Ad_SDK M_SDK;
     Action Ac_Reward;

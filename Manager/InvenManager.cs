@@ -2,9 +2,8 @@ using System;
 using System.Collections.Generic;
 using static Data_User;
 using static UD_Func;
-public class InvenManager : Single<InvenManager>
+public class InvenManager : SingleMono<InvenManager>
 {
-
     //인벤 획득 및 판매는 한번에 여러개씩 하는경우가 많음 이경우를 위한 코드들 필요
 
     public static event EventHandler Ev_Acquire_Item;

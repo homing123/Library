@@ -4,7 +4,7 @@ using System.Collections;
 using static Data_User;
 using static Define;
 
-public class AudioManager : Single<AudioManager>
+public class AudioManager : SingleMono<AudioManager>
 {
     public static event EventHandler Ev_Sound_On;
     public static event EventHandler Ev_Sound_Off;

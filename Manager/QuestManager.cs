@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using static Data_User;
 using static UD_Func;
 
-public class QuestManager : Single<QuestManager>
+public class QuestManager : SingleMono<QuestManager>
 {
     public static event EventHandler Ev_Quest_Accept;
     public static event EventHandler Ev_Quest_Complete;
@@ -14,24 +14,33 @@ public class QuestManager : Single<QuestManager>
     Dictionary<int, E_QuestState> D_QuestState;
     public QuestManager()
     {
-        D_QuestState = new Dictionary<int, E_QuestState>();
-
-        Renewal_D_QuestState();
-        Data.Ev_UserData_Change += Renewal_D_QuestState;
+        UserData_Set_Action(Set_D_QuestState);
     }
 
-    void Renewal_D_QuestState(object sender = null, EventArgs args = null)
+    void Set_D_QuestState()
     {
-        D_Quest Cur_Quest;
+        D_QuestState = new Dictionary<int, E_QuestState>();
         for (int i = 0; i < Data_Quest.Instance.M_ID.Length; i++)
         {
-            Cur_Quest = Data_Quest.Instance.Get_Quest(Data_Quest.Instance.M_ID[i]);
+            D_Quest Cur_Quest = Data_Quest.Instance.Get_Quest(Data_Quest.Instance.M_ID[i]);
             if (Cur_Quest.Release == true)
             {
                 D_QuestState.Add(Data_Quest.Instance.M_ID[i], Check_State(Cur_Quest));
             }
         }
     }
+    void Update_D_QuestState()
+    {
+        if (D_QuestState == null)
+        {
+            foreach (KeyValuePair<int, E_QuestState> keys in D_QuestState)
+            {
+                D_Quest Cur_Quest = Data_Quest.Instance.Get_Quest(keys.Key);
+                D_QuestState[keys.Key] = Check_State(Cur_Quest);
+            }
+        }
+    }
+   
     E_QuestState Check_State(D_Quest cur_quest)
     {
         //if (cur_quest == null)

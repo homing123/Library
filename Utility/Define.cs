@@ -1,4 +1,5 @@
 using UnityEngine;
+#region enum
 public enum E_QuestState
 {
     None = 0, //없는
@@ -35,8 +36,9 @@ public enum E_ItemKind
 }
 public enum E_Check_Available_Purchase_Info
 {
-    Available=0,
-    Lack_Of_Price,
+    Available = 0,
+    Lack_Of_Price = 1,
+    No_Ads = 2,
 }
 
 public enum E_DataRead_State 
@@ -75,8 +77,39 @@ public enum E_ReservationTime_Kind
 {
     Store,
 }
-
-
+public enum E_LoginState
+{
+    None = 0,
+    Guest = 1,
+    Google = 2,
+    Apple = 3
+}
+public enum E_DataConnector_Request
+{
+    None = 0, //기본상태
+    Success = 1, //성공
+    No_Network_Connection = 2, //네트워크 연결안됨 
+    Not_Logged_In = 3, //로그인 안됨
+    File_None = 4, //파일 없음
+    Fail_Unknown = 5, //실패 알수없음
+}
+#endregion
+#region Struct
+#endregion
+#region class
+public class ReservationTime_Info
+{
+    public DateTime Reservation_Time;
+    public int Remaining_Time;
+    public E_ReservationTime_State Cur_State;
+    public ReservationTime_Info(Data_User.User_Reservation_Time user_reservation_time)
+    {
+        Reservation_Time = System.DateTime.Parse(user_reservation_time.End_Time);
+        Remaining_Time = TimeManager.Instance.Get_RemainingTime(Reservation_Time);
+        Cur_State = Remaining_Time > 0 ? E_ReservationTime_State.Before : E_ReservationTime_State.After;
+    }
+}
+#endregion
 public class Define : MonoBehaviour
 {
     //사운드
@@ -88,9 +121,8 @@ public class Define : MonoBehaviour
     public static float AD_ReLoad_Time;
 
 }
-
 #region Singleton
-public class Single<T> : MonoBehaviour where T : MonoBehaviour
+public class SingleMono<T> : MonoBehaviour where T : MonoBehaviour
 {
     // Check to see if we're about to be destroyed
     private static bool m_ShuttingDown = false;
@@ -106,8 +138,6 @@ public class Single<T> : MonoBehaviour where T : MonoBehaviour
         {
             if (m_ShuttingDown)
             {
-                Debug.LogWarning("[Singleton] Instance '" + typeof(T) +
-                    "' already destroyed. Returning null.");
                 return null;
             }
 
@@ -147,6 +177,13 @@ public class Single<T> : MonoBehaviour where T : MonoBehaviour
         m_ShuttingDown = true;
     }
 }
+
+public class Single<T> where T : new()
+{
+    private static T m_Instance;
+
+}
+
 //인스턴스로 부르면 싱글톤개념으로 세팅해서 생성됨
 //세팅함수를 공
 
@@ -190,7 +227,6 @@ public abstract class Single_Data<T> where T : Single_Data<T>, new()
 
 }
 #endregion
-
 #region extends
 public static class Ex_Define
 {
