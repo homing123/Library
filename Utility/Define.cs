@@ -1,5 +1,29 @@
 using UnityEngine;
 using System;
+using System.Reflection;
+public abstract class Single_Data<T> where T : Single_Data<T>, new()
+{
+    static T m_Instance;
+    public static T Instance
+    {
+        get
+        {
+            if (m_Instance == null)
+            {
+                m_Instance = Data_Reader.ReadData<T>((string)(typeof(T).GetField("FileName", BindingFlags.Static | BindingFlags.Public)).GetValue(null));
+                m_Instance.Setting();
+            }
+            return m_Instance;
+        }
+    }
+
+    public abstract void Setting();
+    public static bool isNone_Instance()
+    {
+        return m_Instance == null ? true : false; 
+    }
+}
+
 #region enum
 public enum E_QuestState
 {
@@ -94,6 +118,12 @@ public enum E_DataConnector_Request
     File_None = 4, //파일 없음
     Fail_Unknown = 5, //실패 알수없음
 }
+
+public enum E_Object
+{
+    Character,
+
+}
 #endregion
 #region Struct
 #endregion
@@ -111,7 +141,8 @@ public class ReservationTime_Info
     }
 }
 #endregion
-public class Define : MonoBehaviour
+#region Define_Value
+public class Define
 {
     //사운드
     public static float Sound_Volume = 1f;
@@ -122,6 +153,7 @@ public class Define : MonoBehaviour
     public static float AD_ReLoad_Time;
 
 }
+#endregion
 #region Singleton
 public class SingleMono<T> : MonoBehaviour where T : MonoBehaviour
 {
@@ -177,55 +209,6 @@ public class SingleMono<T> : MonoBehaviour where T : MonoBehaviour
     {
         m_ShuttingDown = true;
     }
-}
-
-public class Single<T> where T : new()
-{
-    private static T m_Instance;
-
-}
-
-//인스턴스로 부르면 싱글톤개념으로 세팅해서 생성됨
-//세팅함수를 공
-
-public abstract class Single_Data<T> where T : Single_Data<T>, new()
-{
-    static T m_Instance;
-    public static T Instance
-    {
-        get
-        {
-            if (m_Instance == null)
-            {
-                m_Instance = Data_Reader.ReadData<T>(Get_Name()); ;
-                m_Instance.Setting();
-            }
-            return m_Instance;
-        }
-    }
-    static string Name;
-    public static string Get_Name()
-    {
-        if (Name == null) 
-        {
-            Name = typeof(T).Name.Remove(0, 5);
-        }
-        return Name;
-    }
-    public static T Get_New()
-    {
-        if (m_Instance == null)
-        {
-            m_Instance = new T();
-            return m_Instance;
-        }
-        else
-        {
-            return null;
-        }
-    }
-    public abstract void Setting();
-
 }
 #endregion
 #region extends

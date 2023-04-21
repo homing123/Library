@@ -9,35 +9,36 @@ public class PurchaseManager : SingleMono<PurchaseManager>
 
     public static event EventHandler Ev_Purchase;
 
-    public Dictionary<int, E_ProductState> D_ProductState;
+    //public Dictionary<int, E_ProductState> D_ProductState;
+
     public PurchaseManager()
     {
-        UserData_Set_Action(Set_D_ProductState);
+        //UserData_Set_Action(Set_D_ProductState);
         //Renewal_D_ProductState 이거 이벤트등록해야하는데 어디에 해야하지?
     }
-    void Set_D_ProductState()
-    {
-        D_ProductState = new Dictionary<int, E_ProductState>();
-        for (int i = 0; i < Data_Product.Instance.M_ID.Length; i++)
-        {
-            D_Product Cur_Product = Data_Product.Instance.Get_Product(Data_Product.Instance.M_ID[i]);
-            if (Cur_Product.Release == true)
-            {
-                D_ProductState.Add(Data_Product.Instance.M_ID[i], Check_State(Cur_Product));
-            }
-        }
-    }
-    void Update_D_ProductState(object sender = null, EventArgs args = null)
-    {
-        if(D_ProductState != null)
-        {
-            foreach(KeyValuePair<int,E_ProductState> keys in D_ProductState)
-            {
-                D_Product Cur_Product = Data_Product.Instance.Get_Product(keys.Key);
-                D_ProductState[keys.Key] = Check_State(Cur_Product);
-            }
-        }
-    }
+    //void Set_D_ProductState()
+    //{
+    //    D_ProductState = new Dictionary<int, E_ProductState>();
+    //    for (int i = 0; i < Data_Product.Instance.M_ID.Length; i++)
+    //    {
+    //        D_Product Cur_Product = Data_Product.Instance.Get_Product(Data_Product.Instance.M_ID[i]);
+    //        if (Cur_Product.Release == true)
+    //        {
+    //            D_ProductState.Add(Data_Product.Instance.M_ID[i], Check_State(Cur_Product));
+    //        }
+    //    }
+    //}
+    //void Update_D_ProductState(object sender = null, EventArgs args = null)
+    //{
+    //    if(D_ProductState != null)
+    //    {
+    //        foreach(KeyValuePair<int,E_ProductState> keys in D_ProductState)
+    //        {
+    //            D_Product Cur_Product = Data_Product.Instance.Get_Product(keys.Key);
+    //            D_ProductState[keys.Key] = Check_State(Cur_Product);
+    //        }
+    //    }
+    //}
    
     E_ProductState Check_State(D_Product cur_product)
     {

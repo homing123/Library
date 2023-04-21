@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class Text_Setting : TMPro.TextMeshPro
+public class Text_Setting : TMPro.TextMeshProUGUI
 {
     [SerializeField] E_Text_Kind m_TextKind;
     [SerializeField] int m_Language_ID;

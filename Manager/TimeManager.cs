@@ -43,7 +43,7 @@ public class TimeManager : SingleMono<TimeManager>
     }
     void Update_D_ReservationTime()
     {
-        if (D_ReservationTime_Info == null)
+        if (D_ReservationTime_Info != null)
         {
             foreach (KeyValuePair<(E_ReservationTime_Kind kind, int idx), ReservationTime_Info> keys in D_ReservationTime_Info)
             {

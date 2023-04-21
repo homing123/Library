@@ -1,4 +1,3 @@
-using System;
 using System.Threading.Tasks;
 using System.Net;
 using System.Text;
@@ -15,8 +14,7 @@ public class FTPConnector
     const string FTP_Password = "";
     const string FTP_Path = "";
 
-
-    public static async Task<E_DataConnector_Request> Upload(string data, E_FTP_Kind kind, Action<E_DataConnector_Request> Ac_Success = null, Action<E_DataConnector_Request> Ac_Fail = null)
+    public static async Task<E_DataConnector_Request> Upload(string data, E_FTP_Kind kind)
     {
         string Path = Get_Path(kind);
 
@@ -75,7 +73,14 @@ public class FTPConnector
                     //400~599 Fail
                     else if (status_value >= 400 && status_value <= 599)
                     {
-                        request = E_DataConnector_Request.Fail_Unknown;
+                        if (status_value == (int)FtpStatusCode.ActionNotTakenFileUnavailable)
+                        {
+                            request = E_DataConnector_Request.File_None;
+                        }
+                        else
+                        {
+                            request = E_DataConnector_Request.Fail_Unknown;
+                        }
                     }
                     else
                     {
@@ -89,10 +94,84 @@ public class FTPConnector
                 switch (e.Status)
                 {
                     case WebExceptionStatus.Timeout:
-                        LogManager.Log("FTP_Upload Exception : TimeOut , " + e.Status);
+                        LogManager.Log("FTP_Upload Exception : TimeOut , " + e.Status + " " + request);
                         break;
                     default:
-                        LogManager.Log("FTP_Upload Exception : " + e.Status);
+                        LogManager.Log("FTP_Upload Exception : " + e.Status + " " + request);
+                        break;
+                }
+                request = E_DataConnector_Request.Fail_Unknown;
+            }
+        }
+
+        return request;
+    }
+    public static async Task<(E_DataConnector_Request request, string data)> Download(E_FTP_Kind kind)
+    {
+        string Path = Get_Path(kind);
+
+        string Data = null;
+        E_DataConnector_Request request = E_DataConnector_Request.None;
+        if (NetworkManager.Instance.isNetwork_Connect == false)
+        {
+            request = E_DataConnector_Request.No_Network_Connection;
+        }
+        else if (LoginAdapter.isLogin)
+        {
+            request = E_DataConnector_Request.Not_Logged_In;
+        }
+        else
+        {
+            try
+            {
+                FtpWebRequest ftp_req = WebRequest.Create(Path) as FtpWebRequest;
+                ftp_req.Method = WebRequestMethods.Ftp.DownloadFile;
+                ftp_req.Credentials = new NetworkCredential(FTP_ID, FTP_Password);
+                ftp_req.UsePassive = false;
+                ftp_req.Timeout = 5000;
+
+                //서버로 부터 응답받기 (응답 후 처리가 없어도 응답을 받아야함 없으면 오류생긴다고함)
+                using (FtpWebResponse ftp_response = await ftp_req.GetResponseAsync() as FtpWebResponse)
+                {
+                    int status_value = (int)ftp_response.StatusCode;
+                    LogManager.Log("FTP_Download Response : " + ftp_response.StatusCode + " " + status_value);
+                    //200~299 Success
+                    if (status_value >= 200 && status_value <= 299)
+                    {
+                        using (StreamReader reader = new StreamReader(ftp_response.GetResponseStream()))
+                        {
+                            Data = await reader.ReadToEndAsync();
+                            request = E_DataConnector_Request.Success;
+                        }
+                    }
+                    //400~599 Fail
+                    else if (status_value >= 400 && status_value <= 599)
+                    {
+                        if (status_value == (int)FtpStatusCode.ActionNotTakenFileUnavailable)
+                        {
+                            request = E_DataConnector_Request.File_None;
+                        }
+                        else
+                        {
+                            request = E_DataConnector_Request.Fail_Unknown;
+                        }
+                    }
+                    else
+                    {
+                        request = E_DataConnector_Request.Fail_Unknown;
+                    }
+                }
+
+            }
+            catch (WebException e)
+            {
+                switch (e.Status)
+                {
+                    case WebExceptionStatus.Timeout:
+                        LogManager.Log("FTP_Download Exception : TimeOut , " + e.Status + " " + request);
+                        break;
+                    default:
+                        LogManager.Log("FTP_Download Exception : " + e.Status + " " + request);
                         break;
                 }
                 request = E_DataConnector_Request.Fail_Unknown;
@@ -100,24 +179,76 @@ public class FTPConnector
         }
 
 
-        switch (request) 
+        return (request, Data);
+    }
+    public static async Task<E_DataConnector_Request> Delete(E_FTP_Kind kind)
+    {
+        string Path = Get_Path(kind);
+
+        E_DataConnector_Request request = E_DataConnector_Request.None;
+        if (NetworkManager.Instance.isNetwork_Connect == false)
         {
-            case E_DataConnector_Request.Success:
-                Ac_Success?.Invoke(request);
-                break;
-            default:
-                Ac_Fail?.Invoke(request);
-                break;
+            request = E_DataConnector_Request.No_Network_Connection;
         }
+        else if (LoginAdapter.isLogin)
+        {
+            request = E_DataConnector_Request.Not_Logged_In;
+        }
+        else
+        {
+            try
+            {
+                FtpWebRequest ftp_req = WebRequest.Create(Path) as FtpWebRequest;
+                ftp_req.Method = WebRequestMethods.Ftp.DeleteFile;
+                ftp_req.Credentials = new NetworkCredential(FTP_ID, FTP_Password);
+                ftp_req.UsePassive = false;
+                ftp_req.Timeout = 5000;
+
+                //서버로 부터 응답받기 (응답 후 처리가 없어도 응답을 받아야함 없으면 오류생긴다고함)
+                using (FtpWebResponse ftp_response = await ftp_req.GetResponseAsync() as FtpWebResponse)
+                {
+                    int status_value = (int)ftp_response.StatusCode;
+                    LogManager.Log("FTP_Delete Response : " + ftp_response.StatusCode + " " + status_value);
+                    //200~299 Success
+                    if (status_value >= 200 && status_value <= 299)
+                    {
+                        request = E_DataConnector_Request.Success;
+                    }
+                    //400~599 Fail
+                    else if (status_value >= 400 && status_value <= 599)
+                    {
+                        if (status_value == (int)FtpStatusCode.ActionNotTakenFileUnavailable)
+                        {
+                            request = E_DataConnector_Request.File_None;
+                        }
+                        else
+                        {
+                            request = E_DataConnector_Request.Fail_Unknown;
+                        }
+                    }
+                    else
+                    {
+                        request = E_DataConnector_Request.Fail_Unknown;
+                    }
+                }
+
+            }
+            catch (WebException e)
+            {
+                switch (e.Status)
+                {
+                    case WebExceptionStatus.Timeout:
+                        LogManager.Log("FTP_Delete Exception : TimeOut , " + e.Status + " " + request);
+                        break;
+                    default:
+                        LogManager.Log("FTP_Delete Exception : " + e.Status + " " + request);
+                        break;
+                }
+                request = E_DataConnector_Request.Fail_Unknown;
+            }
+        }
+
         return request;
-    }
-    public static async Task<string> Download(E_FTP_Kind kind, Action<E_DataConnector_Request> Ac_Success = null, Action<E_DataConnector_Request> Ac_Fail = null)
-    {
-        return "";
-    }
-    public static async Task Delete()
-    {
-        
     }
 
     static string Get_Path(E_FTP_Kind path_kind)

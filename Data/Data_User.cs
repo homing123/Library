@@ -124,7 +124,6 @@ public class UD_Func
     public static Data_User UserData_Load()
     {
         string path = Path.Combine(Application.persistentDataPath, UserData_FileName);
-        Debug.Log(path);
 
         if (File.Exists(path))
         {
@@ -149,10 +148,18 @@ public class UD_Func
     }
     public static void UserData_Reset()
     {
-        UserData = new Data_User();
-        UserData.Daily_Update_Year = TimeManager.Instance.Cur_UTC.Year;
-        UserData.Daily_Update_Month = TimeManager.Instance.Cur_UTC.Month;
-        UserData.Daily_Update_Day = TimeManager.Instance.Cur_UTC.Day;
+        Data_User userdata = new Data_User();
+
+        userdata.Daily_Update_Year = TimeManager.Instance.Cur_UTC.Year;
+        userdata.Daily_Update_Month = TimeManager.Instance.Cur_UTC.Month;
+        userdata.Daily_Update_Day = TimeManager.Instance.Cur_UTC.Day;
+
+        userdata.Arr_Inventory = new Inventory[500];
+        userdata.L_Quest = new List<Quest>();
+        userdata.L_Clear_Quest = new List<int>();
+        userdata.L_Reservation_Time = new List<User_Reservation_Time>();
+
+        Set_UserData(userdata);
     }
     public static void UserData_Set_Action(Action Ac_UD_Set)
     {

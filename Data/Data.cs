@@ -5,6 +5,7 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System;
 using System.Threading.Tasks;
 using UnityEngine.AddressableAssets;
+using System.Reflection;
 #if UNITY_ANDROID
 using UnityEngine.Networking;
 #endif
@@ -13,7 +14,6 @@ using static Data_User;
 
 public class Data : SingleMono<Data>
 {
-    public static event EventHandler Ev_UserData_Save;
     public static event EventHandler Ev_UserData_Change;
     bool HaveToSave_UserData;
     public void UserData_Changed()
@@ -32,12 +32,13 @@ public class Data : SingleMono<Data>
             HaveToSave_UserData = false;
             //ud저장
 
-            Ev_UserData_Save?.Invoke(this, EventArgs.Empty);
+            UD_Func.UserData_Save();
         }   
     }
 
     #region Streaming
     List<E_DataRead_State> L_DataAsync = new List<E_DataRead_State>();
+    List<string> L_TypeName = new List<string>();
     List<Task> L_Task = new List<Task>();
     public float Get_StreamingDataRead_Percent()
     {
@@ -58,13 +59,50 @@ public class Data : SingleMono<Data>
     public async void Read_StreamingData_Async(Action Ac_Success = null)
     {
         L_DataAsync.Clear();
+        L_TypeName.Clear();
 
         int idx = 0;
 
-        #region 데이터 추가구간
-        L_Task.Add(new Task(() => { Read<Data_Quest>(Data_Quest.FileName, ref idx); }));
-        L_Task.Add(new Task(() => { Read<Data_Product>(Data_Product.FileName, ref idx); }));
-        #endregion
+        string _FileName = "FileName";
+        string _isNone_Instance = "isNone_Instance";
+        string _ReadData_Async = "ReadData_Async";
+
+        Type Type_SingleData = typeof(Single_Data<>);
+        Type[] types = Assembly.GetExecutingAssembly().GetTypes();
+
+
+        foreach (Type type in types)
+        {
+            if (type.IsClass && type.BaseType != null && type.BaseType.IsGenericType &&
+                type.BaseType.GetGenericTypeDefinition() == Type_SingleData)
+            {
+                //Get FileName
+                FieldInfo field = type.GetField(_FileName, BindingFlags.Static | BindingFlags.Public);
+                string Name = (string)field.GetValue(null);
+
+                //Get type_Parent (Single_Data<T>)
+                Type Type_type_Parent = Type_SingleData.MakeGenericType(type);
+
+                //Check isNone_Instance
+                MethodInfo method = Type_type_Parent.GetMethod(_isNone_Instance, BindingFlags.Static | BindingFlags.Public);
+                bool _isNone_Instance_Result = (bool)method.Invoke(null, null);
+                if (_isNone_Instance_Result)
+                {
+                    int _idx = idx;
+                    idx++;
+                    L_TypeName.Add(type.Name);
+                    L_DataAsync.Add(E_DataRead_State.None);
+
+                    //Call ReadData_Async
+                    MethodInfo Method_ReadData_Async = typeof(Data_Reader).GetMethod(_ReadData_Async, BindingFlags.Static | BindingFlags.Public).MakeGenericMethod(type);
+                    Action Ac_ReadData_Success = new Action(() =>
+                    {
+                        L_DataAsync[_idx] = E_DataRead_State.Success;
+                    });
+                    L_Task.Add(new Task(() => { Method_ReadData_Async.Invoke(null, new object[] { Name, null, Ac_ReadData_Success }); }));
+                }
+            }
+        }
 
         for (int i = 0; i < L_Task.Count; i++)
         {
@@ -75,23 +113,15 @@ public class Data : SingleMono<Data>
         L_Task.Clear();
 
         Ac_Success?.Invoke();
-        //완료처리
+
+        //Log
+        for(int i = 0; i < L_DataAsync.Count; i++)
+        {
+            LogManager.Log(L_TypeName[i] + " " + L_DataAsync[i]);
+        }
         LogManager.Log("Read_StreamingData_Async Complete");
     }
-    void Read<T>(string filename, ref int idx)
-    {
-        if (Data_Quest.Get_New() != null)
-        {
-            int _idx = idx;
-            idx++;
-
-            L_DataAsync.Add(E_DataRead_State.None);
-            L_Task.Add(Data_Reader.ReadData_Async<T>(filename, null,() =>
-            {
-                L_DataAsync[_idx] = E_DataRead_State.Success;
-            }));
-        }
-    }
+  
     #endregion
     #region Addressable
     #endregion
@@ -459,7 +489,7 @@ public class D_Audio
 #region Data_Reader
 public class Data_Reader
 {
-    public static async Task<T> ReadData_Async<T>(string filename, string filepath = null, Action Ac_Success = null)
+    public static async Task<T> ReadData_Async<T>(string filename, string filepath, Action Ac_Success)
     {
         if (filepath == null)
         {
@@ -467,7 +497,7 @@ public class Data_Reader
         }
         string path = filepath + filename + ".txt";
         string data = await File.ReadAllTextAsync(path);
-        T class_= JsonUtility.FromJson<T>(data);
+        T class_= JsonUtility.FromJson<T>(data); 
         Ac_Success?.Invoke();
 
         return class_;

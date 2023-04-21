@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using System;
 using static Data_User;
@@ -26,16 +25,24 @@ public class GameManager : SingleMono<GameManager>
 
     public static bool isPaused = false;
 
+    public static event EventHandler Ev_GameLoading;
+    public static event EventHandler Ev_GameStart;
+
+    WaitForEndOfFrame Wait_Frame;
     private void Start()
     {
-        StartCoroutine(GameStart());
+        Wait_Frame = new WaitForEndOfFrame();
+        StartCoroutine(GameLoading());
     }
     private void OnApplicationPause(bool pause)
     {
         if (pause)
         {
             // 앱이 일시정지될 때 수행할 작업
-            TimeManager.Instance.isNetwork_Time = false;
+            if (Use_Network_Time)
+            {
+                TimeManager.Instance.isNetwork_Time = false;
+            }
             isPaused = true;
         }
         else
@@ -49,18 +56,31 @@ public class GameManager : SingleMono<GameManager>
             }
         }
     }
-    IEnumerator GameStart()
+    private void Update()
     {
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            UI_Escape.Escape();
+        }
+    }
+    IEnumerator GameLoading()
+    {
+
+
+        //Appear UI_Loading
+        UI_Loading.Create();
+
         //시간 가져오고
-        WaitForEndOfFrame wait_frame = new WaitForEndOfFrame();
         if (Use_Network_Time) 
         {
             TimeManager.Instance.Get_NetworkTime_Start();
             while (TimeManager.Instance.isNetwork_Time == false)
             {
-                yield return wait_frame;
+                yield return Wait_Frame;
             }
         }
+
+        UI_Loading.Instance.Change_State(10, "Time");
 
         //UD 세팅
         Data_User userdata = UserData_Load();
@@ -74,19 +94,65 @@ public class GameManager : SingleMono<GameManager>
             Set_UserData(userdata);
         }
 
+        UI_Loading.Instance.Change_State(20, "UserData");
+
         //StreamingData 세팅
         bool isStreamLoad_Success = false;
         Data.Instance.Read_StreamingData_Async(() => isStreamLoad_Success = true);
         while (isStreamLoad_Success == false)
         {
             float Cur_StreamLoad_Per = Data.Instance.Get_StreamingDataRead_Percent();
-            yield return wait_frame;
+            yield return Wait_Frame;
         }
         //Addressable 세팅
 
+        UI_Loading.Instance.Change_State(70, "StreamingData");
+
+
         //로그인 확인
+        switch (UserData.LoginState)
+        {
+            case E_LoginState.None:
+                //UI_Loading Destroy
+
+                //Appear UI_Login
+
+                break;
+            case E_LoginState.Guest:
+                //Guest Login
+                //UI_Loading Destroy
+                break;
+            case E_LoginState.Google:
+                //Google Login
+                //UI_Loading Destroy
+                break;
+            case E_LoginState.Apple:
+                //Apple Login
+                //UI_Loading Destroy
+                break;
+        }
+
+        UI_Loading.Instance.Change_State(100, "Login");
+        //UI_Loading.Destroy();
+        //UI_Lobby.Create();
+        //Appear UI_Lobby
     }
 
+
+    //IEnumerator GameStart()
+    //{
+    //    //Appear UI_Loading_Play
+
+    //    while()
+
+    //    //Disappear UI_Loading_Play
+
+    //    //Appear UI_Play
+    //}
+    //IEnumerator GameCleanUp()
+    //{
+
+    //}
     #region 매니저 없는 이벤트
     public static event EventHandler<E_Language> Ev_Language_Change;
 
