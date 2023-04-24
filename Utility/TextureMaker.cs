@@ -1,52 +1,382 @@
 using System.IO;
 using UnityEngine;
+using System;
+public enum E_Operator
+{
+    Add = 0,
+    Subtraction = 1,
+    Multiple = 2,
+    //Division = 3,
 
+}
 public class TextureMaker : MonoBehaviour
 {
     public int width = 512;
     public int height = 512;
-    public string fileName = "noise.png";
+    public string fileName = "Test";
 
-    public float Noise_Value;
-    private Texture2D noiseTexture;
+    private Texture2D m_Texture;
 
     [ContextMenu("생성")]
     void Create_File()
     {
-        // Create a new Texture2D with the specified width and height
-        noiseTexture = new Texture2D(width, height);
-
-        // Generate the noise
-        GenerateNoise();
-
-        // Save the noise texture to a file
+        m_Texture = new Texture2D(width, height);
+        Texture_Info info = new Texture_Info(width, height);
+        SetPixel(info.Gradient_Circle(E_Operator.Add,200).Noise(E_Operator.Multiple,50));
         SaveTextureToFile();
     }
 
-    void GenerateNoise()
+
+    void SetPixel(Texture_Info info)
     {
-        // Loop through each pixel in the texture and set the color based on the noise value
-        for (int y = 0; y < height; y++)
+        for(int x = 0; x < info.Width; x++)
         {
-            for (int x = 0; x < width; x++)
+            for(int y = 0; y < info.Height; y++)
             {
-                float noiseValue = Mathf.PerlinNoise(x / Noise_Value, y / Noise_Value);
-                noiseTexture.SetPixel(x, y, new Color(noiseValue, noiseValue, noiseValue));
+                m_Texture.SetPixel(x, y, info.Colors[x,y]);
             }
         }
 
-        // Apply the changes to the texture
-        noiseTexture.Apply();
+        m_Texture.Apply();
     }
-
+   
     void SaveTextureToFile()
     {
         // Convert the texture to a byte array
-        byte[] bytes = noiseTexture.EncodeToPNG();
+        byte[] bytes = m_Texture.EncodeToPNG();
 
         // Create a new file in the specified path
-        string path = Path.Combine(Application.dataPath, fileName);
+        string path = Path.Combine(Application.dataPath, fileName+".png");
         Debug.Log(path);
         File.WriteAllBytes(path, bytes);
+
+        
     }
+}
+
+public class Texture_Info
+{
+    public int Width;
+    public int Height;
+    public Color[,] Colors;
+    public Texture_Info(int width, int height)
+    {
+        Width = width;
+        Height = height;
+        Colors = new Color[width, height];
+    }
+}
+public static class Ex_Color
+{
+    #region Operator
+    public static Texture_Info Operator(this Texture_Info info, E_Operator oper, float value)
+    {
+        switch (oper)
+        {
+            case E_Operator.Add:
+                for (int y = 0; y < info.Height; y++)
+                {
+                    for (int x = 0; x < info.Width; x++)
+                    {
+                        info.Colors[x, y].r += value;
+                        info.Colors[x, y].g += value;
+                        info.Colors[x, y].b += value;
+                        info.Colors[x, y].a += value;
+                    }
+                }
+                break;
+            case E_Operator.Subtraction:
+                for (int y = 0; y < info.Height; y++)
+                {
+                    for (int x = 0; x < info.Width; x++)
+                    {
+                        info.Colors[x, y].r -= value;
+                        info.Colors[x, y].g -= value;
+                        info.Colors[x, y].b -= value;
+                        info.Colors[x, y].a -= value;
+                    }
+                }
+                break;
+            case E_Operator.Multiple:
+                for (int y = 0; y < info.Height; y++)
+                {
+                    for (int x = 0; x < info.Width; x++)
+                    {
+                        info.Colors[x, y].r *= value;
+                        info.Colors[x, y].g *= value;
+                        info.Colors[x, y].b *= value;
+                        info.Colors[x, y].a *= value;
+                    }
+                }
+                break;
+        }
+        return info;
+    }
+    #endregion
+    #region Color
+    #endregion
+    #region Gradient
+    public static Texture_Info Gradient_Circle(this Texture_Info info, E_Operator oper, float radius)
+    {
+        Action<Color[,]> Ac_Operator = null;
+        switch (oper)
+        {
+            case E_Operator.Add:
+                Ac_Operator = (colors) =>
+                {
+                    for (int y = 0; y < info.Height; y++)
+                    {
+                        for (int x = 0; x < info.Width; x++)
+                        {
+                            info.Colors[x, y] += colors[x, y];
+                        }
+                    }
+                };
+                break;
+            case E_Operator.Subtraction:
+                Ac_Operator = (colors) =>
+                {
+                    for (int y = 0; y < info.Height; y++)
+                    {
+                        for (int x = 0; x < info.Width; x++)
+                        {
+                            info.Colors[x, y] -= colors[x, y];
+                        }
+                    }
+                };
+                break;
+            case E_Operator.Multiple:
+                Ac_Operator = (colors) =>
+                {
+                    for (int y = 0; y < info.Height; y++)
+                    {
+                        for (int x = 0; x < info.Width; x++)
+                        {
+                            info.Colors[x, y] *= colors[x, y];
+                        }
+                    }
+                };
+                break;
+        }
+
+        Color[,] Arr_Color = new Color[info.Width, info.Height];
+        float Center_x = info.Width * 0.5f;
+        float Center_y = info.Height * 0.5f;
+        for (int y = 0; y < info.Height; y++)
+        {
+            for (int x = 0; x < info.Width; x++)
+            {
+                float value = 1 - (Mathf.Sqrt(((Center_x - x) * (Center_x - x) + (Center_y - y) * (Center_y - y))) / radius);
+                Arr_Color[x, y].r = value;
+                Arr_Color[x, y].g = value;
+                Arr_Color[x, y].b = value;
+                Arr_Color[x, y].a = 1;
+            }
+        }
+        Ac_Operator(Arr_Color);
+        return info;
+    }
+    #endregion
+    #region Shape
+    #endregion
+    #region Texture
+    public static Texture_Info Noise(this Texture_Info info, E_Operator oper, float noise_value)
+    {
+        Action<Color[,]> Ac_Operator = null;
+        switch (oper)
+        {
+            case E_Operator.Add:
+                Ac_Operator = (colors) =>
+                {
+                    for (int y = 0; y < info.Height; y++)
+                    {
+                        for (int x = 0; x < info.Width; x++)
+                        {
+                            info.Colors[x, y] += colors[x, y];
+                        }
+                    }
+                };
+                break;
+            case E_Operator.Subtraction:
+                Ac_Operator = (colors) =>
+                {
+                    for (int y = 0; y < info.Height; y++)
+                    {
+                        for (int x = 0; x < info.Width; x++)
+                        {
+                            info.Colors[x, y] -= colors[x, y];
+                        }
+                    }
+                };
+                break;
+            case E_Operator.Multiple:
+                Ac_Operator = (colors) =>
+                {
+                    for (int y = 0; y < info.Height; y++)
+                    {
+                        for (int x = 0; x < info.Width; x++)
+                        {
+                            info.Colors[x, y] *= colors[x, y];
+                        }
+                    }
+                };
+                break;
+        }
+
+        Color[,] Arr_Color = new Color[info.Width, info.Height];
+        for (int y = 0; y < info.Height; y++)
+        {
+            for (int x = 0; x < info.Width; x++)
+            {
+                float value = Mathf.PerlinNoise(x / noise_value, y / noise_value);
+                Arr_Color[x, y].r = value;
+                Arr_Color[x, y].g = value;
+                Arr_Color[x, y].b = value;
+                Arr_Color[x, y].a = 1;
+            }
+        }
+        Ac_Operator(Arr_Color);
+        return info;
+    }
+
+    public static Texture_Info Wave(this Texture_Info info, E_Operator oper)
+    {
+        Action<Color[,]> Ac_Operator = null;
+        switch (oper)
+        {
+            case E_Operator.Add:
+                Ac_Operator = (colors) =>
+                {
+                    for (int y = 0; y < info.Height; y++)
+                    {
+                        for (int x = 0; x < info.Width; x++)
+                        {
+                            info.Colors[x, y] += colors[x, y];
+                        }
+                    }
+                };
+                break;
+            case E_Operator.Subtraction:
+                Ac_Operator = (colors) =>
+                {
+                    for (int y = 0; y < info.Height; y++)
+                    {
+                        for (int x = 0; x < info.Width; x++)
+                        {
+                            info.Colors[x, y] -= colors[x, y];
+                        }
+                    }
+                };
+                break;
+            case E_Operator.Multiple:
+                Ac_Operator = (colors) =>
+                {
+                    for (int y = 0; y < info.Height; y++)
+                    {
+                        for (int x = 0; x < info.Width; x++)
+                        {
+                            info.Colors[x, y] *= colors[x, y];
+                        }
+                    }
+                };
+                break;
+        }
+
+        Color[,] Arr_Color = new Color[info.Width, info.Height];
+        for (int y = 0; y < info.Height; y++)
+        {
+            for (int x = 0; x < info.Width; x++)
+            {
+                // WaveTexture의 픽셀값 계산
+                float value = Mathf.Sin(x * 0.1f) + Mathf.Sin(y * 0.1f);
+                Arr_Color[x, y].r = value;
+                Arr_Color[x, y].g = value;
+                Arr_Color[x, y].b = value;
+                Arr_Color[x, y].a = 1;
+            }
+        }
+        Ac_Operator(Arr_Color);
+        return info;
+    }
+
+    public static Texture_Info Voronio(this Texture_Info info, E_Operator oper, int point_count)
+    {
+        Action<Color[,]> Ac_Operator = null;
+        switch (oper)
+        {
+            case E_Operator.Add:
+                Ac_Operator = (colors) =>
+                {
+                    for (int y = 0; y < info.Height; y++)
+                    {
+                        for (int x = 0; x < info.Width; x++)
+                        {
+                            info.Colors[x, y] += colors[x, y];
+                        }
+                    }
+                };
+                break;
+            case E_Operator.Subtraction:
+                Ac_Operator = (colors) =>
+                {
+                    for (int y = 0; y < info.Height; y++)
+                    {
+                        for (int x = 0; x < info.Width; x++)
+                        {
+                            info.Colors[x, y] -= colors[x, y];
+                        }
+                    }
+                };
+                break;
+            case E_Operator.Multiple:
+                Ac_Operator = (colors) =>
+                {
+                    for (int y = 0; y < info.Height; y++)
+                    {
+                        for (int x = 0; x < info.Width; x++)
+                        {
+                            info.Colors[x, y] *= colors[x, y];
+                        }
+                    }
+                };
+                break;
+        }
+
+        Vector2[] points = new Vector2[point_count];
+        for (int i = 0; i < point_count; i++)
+        {
+            points[i] = new Vector2(UnityEngine.Random.value * info.Width, UnityEngine.Random.value * info.Height);
+        }
+
+        Color[,] Arr_Color = new Color[info.Width, info.Height];
+        for (int y = 0; y < info.Height; y++)
+        {
+            for (int x = 0; x < info.Width; x++)
+            {
+                float minDistance = float.MaxValue;
+                Vector2 closestPoint = Vector2.zero;
+
+                // Find the closest point
+                for (int i = 0; i < point_count; i++)
+                {
+                    float distance = Vector2.Distance(points[i], new Vector2(x, y));
+                    if (distance < minDistance)
+                    {
+                        minDistance = distance;
+                        closestPoint = points[i];
+                    }
+                }
+
+                // Set the pixel color
+                Arr_Color[x, y].r = closestPoint.x / info.Width;
+                Arr_Color[x, y].g = closestPoint.y / info.Height;
+                Arr_Color[x, y].b = 0;
+                Arr_Color[x, y].a = 1;
+            }
+        }
+        Ac_Operator(Arr_Color);
+        return info;
+    }
+    #endregion
+
 }
