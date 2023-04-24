@@ -22,7 +22,7 @@ public class TextureMaker : MonoBehaviour
     {
         m_Texture = new Texture2D(width, height);
         Texture_Info info = new Texture_Info(width, height);
-        SetPixel(info.Gradient_Circle(E_Operator.Add,200).Noise(E_Operator.Multiple,50));
+        SetPixel(info.Gradient_Circle(E_Operator.Add, 200).ColorRamp(new Color(1, 1, 1, 1), new Color(0, 0, 0, 1)));
         SaveTextureToFile();
     }
 
@@ -114,6 +114,18 @@ public static class Ex_Color
     }
     #endregion
     #region Color
+    public static Texture_Info ColorRamp(this Texture_Info info, Color max_color, Color min_color)
+    {
+        Color temp = max_color - min_color;
+        for (int x = 0; x < info.Width; x++)
+        {
+            for (int y = 0; y < info.Height; y++)
+            {
+                info.Colors[x, y] = temp * info.Colors[x, y] + min_color;
+            }
+        }
+        return info;
+    }
     #endregion
     #region Gradient
     public static Texture_Info Gradient_Circle(this Texture_Info info, E_Operator oper, float radius)
