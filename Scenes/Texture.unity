@@ -239,6 +239,7 @@ MonoBehaviour:
   width: 512
   height: 512
   fileName: test
+  color: {r: 0.5424528, g: 0.93540514, b: 1, a: 1}
 --- !u!4 &1763175207
 Transform:
   m_ObjectHideFlags: 0
