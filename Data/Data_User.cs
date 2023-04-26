@@ -36,17 +36,20 @@ public class Data_User
 
     public List<User_Reservation_Time> L_Reservation_Time; //예약시간 리스트
 
+    [Serializable]
     public class Inventory 
     {
         public E_ItemKind Item_Kind;
         public int Item_ID;
         public int Count;
     }
+    [Serializable]
     public class Quest
     {
         public int Quest_ID;
         public int Progress;
     }
+    [Serializable]
     public class User_Reservation_Time
     {
         public string End_Time;
@@ -124,7 +127,7 @@ public class UD_Func
     public static Data_User UserData_Load()
     {
         string path = Path.Combine(Application.persistentDataPath, UserData_FileName);
-
+        Debug.Log(Path.Combine(Application.persistentDataPath, UserData_FileName));
         if (File.Exists(path))
         {
             return JsonUtility.FromJson<Data_User>(File.ReadAllText(path)); ;
@@ -161,6 +164,10 @@ public class UD_Func
 
         Set_UserData(userdata);
     }
+    /// <summary>
+    /// UD 세팅되어 있으면 Action 실행, 세팅안되어있으면 세팅될때 실행
+    /// </summary>
+    /// <param name="Ac_UD_Set"></param>
     public static void UserData_Set_Action(Action Ac_UD_Set)
     {
         if(UserData == null)

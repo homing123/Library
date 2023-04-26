@@ -228,3 +228,20 @@ public static class Ex_Define
 
 
 #endregion
+#region UI
+[RequireComponent(typeof(UI_SafeArea))]
+[RequireComponent(typeof(UI_Escape))]
+public class UI_View : MonoBehaviour
+{
+    [SerializeField] RectTransform RT_Panel;
+    protected UI_SafeArea m_SafeArea;
+    protected UI_Escape m_Escape;
+    private void Awake()
+    {
+        m_SafeArea = GetComponent<UI_SafeArea>();
+        m_Escape = GetComponent<UI_Escape>();
+        m_SafeArea.m_RectTransform = RT_Panel;
+    }
+}
+
+#endregion

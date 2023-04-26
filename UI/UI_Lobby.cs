@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class UI_Lobby : MonoBehaviour
+public class UI_Lobby : UI_View
 {
     public static UI_Lobby Instance;
     public static UI_Lobby Create()

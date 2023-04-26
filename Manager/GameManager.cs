@@ -29,9 +29,11 @@ public class GameManager : SingleMono<GameManager>
     public static event EventHandler Ev_GameStart;
 
     WaitForEndOfFrame Wait_Frame;
+    WaitForSeconds Wait_OneSecond;
     private void Start()
     {
         Wait_Frame = new WaitForEndOfFrame();
+        Wait_OneSecond = new WaitForSeconds(1);
         StartCoroutine(GameLoading());
     }
     private void OnApplicationPause(bool pause)
@@ -70,7 +72,7 @@ public class GameManager : SingleMono<GameManager>
         //Appear UI_Loading
         UI_Loading.Create();
 
-        //시간 가져오고
+        //Set Current Time
         if (Use_Network_Time) 
         {
             TimeManager.Instance.Get_NetworkTime_Start();
@@ -82,7 +84,7 @@ public class GameManager : SingleMono<GameManager>
 
         UI_Loading.Instance.Change_State(10, "Time");
 
-        //UD 세팅
+        //Set UserData
         Data_User userdata = UserData_Load();
         if (userdata == null)
         {
@@ -96,7 +98,7 @@ public class GameManager : SingleMono<GameManager>
 
         UI_Loading.Instance.Change_State(20, "UserData");
 
-        //StreamingData 세팅
+        //Set StreamingData
         bool isStreamLoad_Success = false;
         Data.Instance.Read_StreamingData_Async(() => isStreamLoad_Success = true);
         while (isStreamLoad_Success == false)
@@ -109,7 +111,7 @@ public class GameManager : SingleMono<GameManager>
         UI_Loading.Instance.Change_State(70, "StreamingData");
 
 
-        //로그인 확인
+        //Check Login
         switch (UserData.LoginState)
         {
             case E_LoginState.None:
@@ -133,8 +135,11 @@ public class GameManager : SingleMono<GameManager>
         }
 
         UI_Loading.Instance.Change_State(100, "Login");
-        //UI_Loading.Destroy();
-        //UI_Lobby.Create();
+
+        yield return Wait_OneSecond;
+
+        UI_Loading.Destroy();
+        UI_Lobby.Create();
         //Appear UI_Lobby
     }
 
