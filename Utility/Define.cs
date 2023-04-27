@@ -1,7 +1,8 @@
 using UnityEngine;
 using System;
 using System.Reflection;
-public abstract class Single_Data<T> where T : Single_Data<T>, new()
+using System.Collections.Generic;
+public abstract class Single_Data<T> where T : Single_Data<T>
 {
     static T m_Instance;
     public static T Instance

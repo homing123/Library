@@ -12,7 +12,26 @@ public class Data_User
     public static void Set_UserData(Data_User userdata)
     {
         UserData = userdata;
+
+        for(int i=0;i< UserData.L_Mission.Count; i++)
+        {
+            Mission mission = UserData.L_Mission[i];
+            UserData.D_Mission.Add(mission.Mission_Kind, mission.Mission_Value);
+            QuestManager.Call_MissionEvent(mission.Mission_Kind);
+        }
+
         Ev_UserData_Set?.Invoke(UserData, EventArgs.Empty);
+    }
+    public static void SaveSetting_UserData()
+    {
+        UserData.L_Mission.Clear();
+        foreach(KeyValuePair<int, int> keys in UserData.D_Mission)
+        {
+            Mission mission = new Mission();
+            mission.Mission_Kind = keys.Key;
+            mission.Mission_Value = keys.Value;
+            UserData.L_Mission.Add(mission);
+        }
     }
 
     public E_LoginState LoginState;
@@ -29,12 +48,14 @@ public class Data_User
     public bool BGM_On;
     public bool Vibration_On;
 
-    public Inventory[] Arr_Inventory; //인벤 리스트
+    public Inventory[] Arr_Inventory = new Inventory[0]; //인벤 리스트
 
-    public List<Quest> L_Quest; //진행중인 퀘스트
-    public List<int> L_Clear_Quest; //클리어한 퀘스트
+    public List<Mission> L_Mission = new List<Mission>();
+    public Dictionary<int, int> D_Mission = new Dictionary<int, int>();
+    public List<int> L_Quest = new List<int>(); //진행중인 퀘스트
+    public List<int> L_Clear_Quest = new List<int>(); //클리어한 퀘스트
 
-    public List<User_Reservation_Time> L_Reservation_Time; //예약시간 리스트
+    public List<User_Reservation_Time> L_Reservation_Time = new List<User_Reservation_Time>(); //예약시간 리스트
 
     [Serializable]
     public class Inventory 
@@ -44,10 +65,10 @@ public class Data_User
         public int Count;
     }
     [Serializable]
-    public class Quest
+    public class Mission
     {
-        public int Quest_ID;
-        public int Progress;
+        public int Mission_Kind;
+        public int Mission_Value;
     }
     [Serializable]
     public class User_Reservation_Time
@@ -95,23 +116,18 @@ public class UD_Func
     }
     #endregion
     #region Quest
-
-    //현재 진행중인 퀘스트 클래스 가져오는 함수 진행중이지 않을땐 null리턴
-    public static Quest Quest_Get_Progress_Quest(int quest_id)
+    public static void Add_MissionValue(int mission_kind, int mission_value)
     {
-        for(int i = 0; i < UserData.L_Quest.Count; i++)
+        if (UserData.D_Mission.ContainsKey(mission_kind) == false)
         {
-            if(UserData.L_Quest[i].Quest_ID== quest_id)
-            {
-                return UserData.L_Quest[i];
-            }
+            UserData.D_Mission.Add(mission_kind, mission_value);
         }
-        return null;
-    }
-    //퀘스트 클리어한건지 확인하는 함수
-    public static bool Quest_isClear(int quest_id)
-    {
-        return Data_User.UserData.L_Clear_Quest.Contains(quest_id);
+        else
+        {
+            UserData.D_Mission[mission_kind] += mission_value;
+        }
+
+        QuestManager.Call_MissionEvent(mission_kind);
     }
     #endregion
     #region User
@@ -121,6 +137,7 @@ public class UD_Func
     {
         if (UserData != null)
         {
+            SaveSetting_UserData();
             File.WriteAllText(Path.Combine(Application.persistentDataPath, UserData_FileName), JsonUtility.ToJson(UserData));
         }
     }
@@ -158,9 +175,6 @@ public class UD_Func
         userdata.Daily_Update_Day = TimeManager.Instance.Cur_UTC.Day;
 
         userdata.Arr_Inventory = new Inventory[500];
-        userdata.L_Quest = new List<Quest>();
-        userdata.L_Clear_Quest = new List<int>();
-        userdata.L_Reservation_Time = new List<User_Reservation_Time>();
 
         Set_UserData(userdata);
     }

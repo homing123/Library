@@ -68,39 +68,34 @@ public class Data : SingleMono<Data>
         string _ReadData_Async = "ReadData_Async";
 
         Type Type_SingleData = typeof(Single_Data<>);
-        Type[] types = Assembly.GetExecutingAssembly().GetTypes();
+        Type[] types = Get_StreamingDataType();
 
 
-        foreach (Type type in types)
+        for (int i = 0; i < types.Length; i++)
         {
-            if (type.IsClass && type.BaseType != null && type.BaseType.IsGenericType &&
-                type.BaseType.GetGenericTypeDefinition() == Type_SingleData)
+            //Get FileName
+            string Name = (string)types[i].GetField(_FileName, BindingFlags.Static | BindingFlags.Public).GetValue(null);
+
+            //Get type_Parent (Single_Data<T>)
+            Type Type_type_Parent = Type_SingleData.MakeGenericType(types[i]);
+
+            //Check isNone_Instance
+            MethodInfo method = Type_type_Parent.GetMethod(_isNone_Instance, BindingFlags.Static | BindingFlags.Public);
+            bool _isNone_Instance_Result = (bool)method.Invoke(null, null);
+            if (_isNone_Instance_Result)
             {
-                //Get FileName
-                FieldInfo field = type.GetField(_FileName, BindingFlags.Static | BindingFlags.Public);
-                string Name = (string)field.GetValue(null);
+                int _idx = idx;
+                idx++;
+                L_TypeName.Add(types[i].Name);
+                L_DataAsync.Add(E_DataRead_State.None);
 
-                //Get type_Parent (Single_Data<T>)
-                Type Type_type_Parent = Type_SingleData.MakeGenericType(type);
-
-                //Check isNone_Instance
-                MethodInfo method = Type_type_Parent.GetMethod(_isNone_Instance, BindingFlags.Static | BindingFlags.Public);
-                bool _isNone_Instance_Result = (bool)method.Invoke(null, null);
-                if (_isNone_Instance_Result)
+                //Call ReadData_Async
+                MethodInfo Method_ReadData_Async = typeof(Data_Reader).GetMethod(_ReadData_Async, BindingFlags.Static | BindingFlags.Public).MakeGenericMethod(types[i]);
+                Action Ac_ReadData_Success = new Action(() =>
                 {
-                    int _idx = idx;
-                    idx++;
-                    L_TypeName.Add(type.Name);
-                    L_DataAsync.Add(E_DataRead_State.None);
-
-                    //Call ReadData_Async
-                    MethodInfo Method_ReadData_Async = typeof(Data_Reader).GetMethod(_ReadData_Async, BindingFlags.Static | BindingFlags.Public).MakeGenericMethod(type);
-                    Action Ac_ReadData_Success = new Action(() =>
-                    {
-                        L_DataAsync[_idx] = E_DataRead_State.Success;
-                    });
-                    L_Task.Add(new Task(() => { Method_ReadData_Async.Invoke(null, new object[] { Name, null, Ac_ReadData_Success }); }));
-                }
+                    L_DataAsync[_idx] = E_DataRead_State.Success;
+                });
+                L_Task.Add(new Task(() => { Method_ReadData_Async.Invoke(null, new object[] { Name, null, Ac_ReadData_Success }); }));
             }
         }
 
@@ -121,7 +116,25 @@ public class Data : SingleMono<Data>
         }
         LogManager.Log("Read_StreamingData_Async Complete");
     }
-  
+
+
+    public static Type[] Get_StreamingDataType()
+    {
+        Type Type_SingleData = typeof(Single_Data<>);
+        Type[] types = Assembly.GetExecutingAssembly().GetTypes();
+
+        List<Type> L_Type = new List<Type>();
+        for (int i = 0; i < types.Length; i++)
+        {
+            if (types[i].IsClass == true && types[i].BaseType != null && types[i].BaseType.IsGenericType == true && types[i].BaseType.GetGenericTypeDefinition() == Type_SingleData)
+            {
+                L_Type.Add(types[i]);
+            }
+        }
+
+        return L_Type.ToArray();
+    }
+
     #endregion
     #region Addressable
     #endregion

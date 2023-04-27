@@ -36,18 +36,8 @@ public class Alarm_Setting : MonoBehaviour
             case E_Alarm.Quest_Completable:
                 for (int i = 0; i < m_QuestType.Length; i++)
                 {
-                    if (m_QuestType[i] == E_QuestType.Daily)
-                    {
-                        isenable = QuestManager.Instance.is_Daily_Completable ? true : isenable;
-
-                        QuestManager.Ev_Daily_Completable += Set_Enable;
-                    }
-                    else if (m_QuestType[i] == E_QuestType.Weekly)
-                    {
-                        isenable = QuestManager.Instance.is_Weekly_Completable ? true : isenable;
-
-                        QuestManager.Ev_Weekly_Completable += Set_Enable;
-                    }
+                    isenable = QuestManager.Get_Alarm_Active(m_QuestType[i]) ? true : isenable;
+                    QuestManager.D_Completable_Event[m_QuestType[i]] += Set_Enable;
                 }
                 break;
         }
@@ -61,14 +51,8 @@ public class Alarm_Setting : MonoBehaviour
             case E_Alarm.Quest_Completable:
                 for (int i = 0; i < m_QuestType.Length; i++)
                 {
-                    if (m_QuestType[i] == E_QuestType.Daily)
-                    {
-                        QuestManager.Ev_Daily_Completable -= Set_Enable;
-                    }
-                    else if (m_QuestType[i] == E_QuestType.Weekly)
-                    {
-                        QuestManager.Ev_Weekly_Completable -= Set_Enable;
-                    }
+                    QuestManager.D_Completable_Event[m_QuestType[i]] -= Set_Enable;
+
                 }
                 break;
         }

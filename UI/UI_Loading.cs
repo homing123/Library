@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class UI_Loading : MonoBehaviour
+public class UI_Loading : UI_View
 {
     public static UI_Loading Instance;
     public static UI_Loading Create()

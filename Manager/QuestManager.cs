@@ -3,134 +3,85 @@ using System.Collections.Generic;
 using static Data_User;
 using static UD_Func;
 
+
+//퀘스트의 type 별로 알람유무 받을수있는 bool 값과 event 가 제공되어야함
+//퀘스트의 진행도가 변경될시 갱신할수있는 event 가 있어야함
+//수락 : 수락가능한 상태일때만 가능하며 수락시 진행중인 퀘스트ud에 추가되며 그후 퀘스트 객체의 상태를 갱신한다.
+//클리어 : 클리어 가능한 상태일때만 가능하며 클리어시 진행중인 퀘스트ud에서 제외되며 클리어한 퀘스트ud에 추가된다. 그후 퀘스트 객체의 상태를 갱신한다.
+//초기화 : 진행중 및 클리어한 퀘스트ud에 있는 애들의 초기화되는 타입인 퀘스트를 모두 제거하며 그후 퀘스트 객체의 상태를 갱신한다.
+
+
 public class QuestManager : SingleMono<QuestManager>
 {
-    public static event EventHandler Ev_Quest_Accept;
-    public static event EventHandler Ev_Quest_Complete;
+    static Dictionary<E_QuestType, int> D_Completable_Count = new Dictionary<E_QuestType, int>();
+    public static Dictionary<E_QuestType, EventHandler<bool>> D_Completable_Event = new Dictionary<E_QuestType, EventHandler<bool>>();
+    static Dictionary<int, EventHandler> D_Mission_Event = new Dictionary<int, EventHandler>();
 
-    public bool is_Daily_Completable; //현재 완료할수있는 일일 퀘스트가 있는지 여부
-    public bool is_Weekly_Completable; //현재 완료할수있는 주간 퀘스트가 있는지 여부
-    public static event EventHandler<bool> Ev_Daily_Completable;
-    public static event EventHandler<bool> Ev_Weekly_Completable;
-
-    Dictionary<int, E_QuestState> D_QuestState;
+   
+    Dictionary<int, QuestInfo> D_QuestInfo = new Dictionary<int, QuestInfo>();
     public QuestManager()
     {
-        UserData_Set_Action(Set_D_QuestState);
-        Data.Ev_UserData_Change += Update_D_QuestState;
+        foreach(E_QuestType value in Enum.GetValues(typeof(E_QuestType)))
+        {
+            D_Completable_Event.Add(value, null);
+            D_Completable_Count.Add(value, 0);
+        }
+
+        UserData_Set_Action(Set_D_QuestInfo);
     }
-
-    void Set_D_QuestState()
+    void Set_D_QuestInfo()
     {
-        D_QuestState = new Dictionary<int, E_QuestState>();
-
-        int Daily_Completable_Count = 0;
-        int Weekly_Completable_Count = 0;
-
         //전체 퀘스트 중 Release == true 인것만 상태 확인
         for (int i = 0; i < Data_Quest.Instance.M_ID.Length; i++)
         {
             D_Quest Cur_Quest = Data_Quest.Instance.Get_Quest(Data_Quest.Instance.M_ID[i]);
             if (Cur_Quest.Release == true)
             {
-                E_QuestState Cur_State = Check_State(Cur_Quest);
-                D_QuestState.Add(Data_Quest.Instance.M_ID[i], Cur_State);
-                if(Cur_State == E_QuestState.Completable)
-                {
-                    switch (Cur_Quest.Q_Type)
-                    {
-                        case E_QuestType.Daily:
-                            Daily_Completable_Count++;
-                            break;
-                        case E_QuestType.Weekly:
-                            Weekly_Completable_Count++;
-                            break;
-                    }
-                }
-              
-            }
-        }
-
-        //이벤트 처리
-        if (Daily_Completable_Count > 0)
-        {
-            is_Daily_Completable = true;
-            Ev_Daily_Completable?.Invoke(this, true);
-        }
-        if (Weekly_Completable_Count > 0)
-        {
-            is_Weekly_Completable = true;
-            Ev_Weekly_Completable?.Invoke(this, true);
-        }
-    }
-    void Update_D_QuestState(object sender = null, EventArgs args = null)
-    {
-        if (D_QuestState == null)
-        {
-            int Daily_Completable_Count = 0;
-            int Weekly_Completable_Count = 0;
-
-            //Release == true 인것만 딕셔너리 안에 있음
-            foreach (KeyValuePair<int, E_QuestState> keys in D_QuestState)
-            {
-                D_Quest Cur_Quest = Data_Quest.Instance.Get_Quest(keys.Key);
-
-                E_QuestState Cur_State = Check_State(Cur_Quest);
-
-                D_QuestState[keys.Key] = Cur_State;
-
-
-                if (Cur_State == E_QuestState.Completable)
-                {
-                    switch (Cur_Quest.Q_Type)
-                    {
-                        case E_QuestType.Daily:
-                            Daily_Completable_Count++;
-                            break;
-                        case E_QuestType.Weekly:
-                            Weekly_Completable_Count++;
-                            break;
-                    }
-                }
-            }
-
-            //이벤트 처리
-            if (is_Daily_Completable ==false && Daily_Completable_Count > 0)
-            {
-                is_Daily_Completable = true;
-                Ev_Daily_Completable?.Invoke(this, true);
-            }
-            else if(is_Daily_Completable == true && Daily_Completable_Count == 0)
-            {
-                is_Daily_Completable = false;
-                Ev_Daily_Completable?.Invoke(this, false);
-            }
-
-            if (is_Weekly_Completable == false && Weekly_Completable_Count > 0)
-            {
-                is_Weekly_Completable = true;
-                Ev_Weekly_Completable?.Invoke(this, true);
-            }
-            else if (is_Weekly_Completable == true && Weekly_Completable_Count == 0)
-            {
-                is_Weekly_Completable = false;
-                Ev_Weekly_Completable?.Invoke(this, false);
+                QuestInfo info = new QuestInfo(Cur_Quest);
+                D_QuestInfo.Add(Data_Quest.Instance.M_ID[i], info);
             }
         }
     }
-
-    public E_QuestState Get_State_ID(int quest_id)
+    
+    public QuestInfo Get_QuestInfo(int quest_id)
     {
-        if (D_QuestState.ContainsKey(quest_id))
+        if (D_QuestInfo.ContainsKey(quest_id))
         {
-            return D_QuestState[quest_id];
+            return D_QuestInfo[quest_id];
         }
         else
         {
-            return E_QuestState.None;
+            return null;
         }
     }
-    E_QuestState Check_State(D_Quest cur_quest)
+    public static void Completable_Count(E_QuestType type,int i)
+    {
+        int before_count = D_Completable_Count[type];
+        D_Completable_Count[type] += i;
+        int current_count = D_Completable_Count[type];
+
+        //알람제거
+        if(before_count==0 && current_count == 1)
+        {
+            D_Completable_Event[type]?.Invoke(null, true);
+        }
+        else if(before_count == 1 && current_count == 0)
+        {
+            D_Completable_Event[type]?.Invoke(null, false);
+        }  
+    }
+    public static bool Get_Alarm_Active(E_QuestType type)
+    {
+        if (D_Completable_Count[type] > 0)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+    public static E_QuestState Get_State(D_Quest cur_quest)
     {
         //if (cur_quest == null)
         //{
@@ -141,17 +92,17 @@ public class QuestManager : SingleMono<QuestManager>
         bool isAccept = false;
         for (int i = 0; i < UserData.L_Quest.Count; i++)
         {
-            if (UserData.L_Quest[i].Quest_ID == cur_quest.M_ID)
+            if (UserData.L_Quest[i] == cur_quest.M_ID)
             {
                 isAccept = true;
                 break;
             }
         }
 
-        if (isAccept)
+        if (isAccept) //진행중
         {
             //클리어 가능한지 확인
-            if (Get_Quest_User_Value(cur_quest.Mission_Kind) >= cur_quest.Mission_Value)
+            if (UserData.D_Mission[cur_quest.Mission_Kind] >= cur_quest.Mission_Value)
             {
                 return E_QuestState.Completable;
             }
@@ -184,49 +135,111 @@ public class QuestManager : SingleMono<QuestManager>
         }
     }
 
-    public int Get_Quest_User_Value(int quest_kind)
+    public static void Accept(QuestInfo info, Action<D_Quest> Ac_Accept = null)
     {
-        switch (quest_kind)
-        {
-            case 1:
-                return UserData.Attendance_Count;
-            case 2:
-                return UserData.Access_Time;
-        }
-        return 0;
-    }
-    public void Accept(D_Quest cur_quest)
-    {
-        if (D_QuestState[cur_quest.M_ID] == E_QuestState.Acceptable)
+        if (info.State == E_QuestState.Acceptable)
         {
             //현재 퀘스트에 추가
-            Quest m_quest = new Quest();
-            m_quest.Quest_ID = cur_quest.M_ID;
-            m_quest.Progress = 0;
-            UserData.L_Quest.Add(m_quest);
-
-            Ev_Quest_Accept?.Invoke(this, EventArgs.Empty);
+            UserData.L_Quest.Add(info.Cur_Quest.M_ID);
             Data.Instance.UserData_Changed();
+
+            Ac_Accept?.Invoke(info.Cur_Quest);
+            info.CheckState();
         }
     }
-    public void Complete(D_Quest cur_quest)
+    public static void Complete(QuestInfo info, Action<D_Quest> Ac_Complete = null)
     {
-        if (D_QuestState[cur_quest.M_ID] == E_QuestState.Completable)
+        if (info.State == E_QuestState.Completable)
         {
+            D_Quest Cur_Quest = info.Cur_Quest;
+
             //현재 퀘스트에서 제거
-            Data_User.Quest User_Quest = Quest_Get_Progress_Quest(cur_quest.M_ID);
-            UserData.L_Quest.Remove(User_Quest);
+            UserData.L_Quest.Remove(Cur_Quest.M_ID);
 
             //완료 퀘스트에 추가
-            UserData.L_Clear_Quest.Add(cur_quest.M_ID);
+            UserData.L_Clear_Quest.Add(Cur_Quest.M_ID);
 
             //보상받기
-            for (int i = 0; i < cur_quest.Reward_Kind.Length; i++)
+            for (int i = 0; i < Cur_Quest.Reward_Kind.Length; i++)
             {
-                InvenManager.Instance.Acquire_Item(cur_quest.Reward_Kind[i], cur_quest.Reward_ID[i], cur_quest.Reward_Value[i]);
+                InvenManager.Instance.Acquire_Item(Cur_Quest.Reward_Kind[i], Cur_Quest.Reward_ID[i], Cur_Quest.Reward_Value[i]);
             }
-            Ev_Quest_Complete?.Invoke(this, EventArgs.Empty);
             Data.Instance.UserData_Changed();
+
+            Ac_Complete?.Invoke(Cur_Quest);
+            info.CheckState();
+        }
+    }
+   
+    public static void Add_MissionEvent(int mission_kind, EventHandler ev)
+    {
+        if (D_Mission_Event.ContainsKey(mission_kind))
+        {
+            D_Mission_Event[mission_kind] += ev;
+        }
+        else
+        {
+            D_Mission_Event.Add(mission_kind, ev);
+        }
+    }
+    public static void Remove_MisstionEvent(int mission_kind, EventHandler ev)
+    {
+        if (D_Mission_Event.ContainsKey(mission_kind))
+        {
+            D_Mission_Event[mission_kind] -= ev;
+        }
+    }
+    public static void Call_MissionEvent(int mission_kind)
+    {       
+        //이벤트 없다는건 등록된게 없다는 뜻 부를필요 x
+        if (D_Mission_Event.ContainsKey(mission_kind))
+        {
+            D_Mission_Event[mission_kind]?.Invoke(null, EventArgs.Empty);
+        }
+    }
+}
+
+
+public class QuestInfo
+{
+    public D_Quest Cur_Quest;
+    public E_QuestState State;
+    public event EventHandler Ev_Acceptable;
+    public event EventHandler Ev_Completable;
+
+
+    public QuestInfo(D_Quest cur_quest)
+    {
+        Cur_Quest = cur_quest;
+        State = QuestManager.Get_State(Cur_Quest);
+        QuestManager.Add_MissionEvent(Cur_Quest.Mission_Kind, (sender, args) => { CheckState(); });
+    }
+    public void CheckState()
+    {
+        E_QuestState cur_state = QuestManager.Get_State(Cur_Quest);
+        if (State != cur_state)
+        {
+            //이전값 처리
+            switch (State)
+            {
+                case E_QuestState.Completable:
+                    QuestManager.Completable_Count(Cur_Quest.Q_Type, -1);
+                    break;
+            }
+
+            //현재값 처리
+            switch (cur_state)
+            {
+                case E_QuestState.Acceptable:
+                    Ev_Acceptable?.Invoke(this, EventArgs.Empty);
+                    break;
+                case E_QuestState.Completable:
+                    Ev_Completable?.Invoke(this, EventArgs.Empty);
+                    QuestManager.Completable_Count(Cur_Quest.Q_Type, 1);
+                    break;
+            }
+
+            State = cur_state;
         }
     }
 }
