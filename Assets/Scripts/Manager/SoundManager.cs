@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.Audio;
+using System.Collections.Generic;
 public class SoundManager : Manager<SoundManager>
 {
     [SerializeField] AudioMixer m_AudioMixer;
@@ -8,6 +9,8 @@ public class SoundManager : Manager<SoundManager>
         BGM,
         SFX,
     }
+
+    static Dictionary<E_SoundType, string> D_Mixer = new Dictionary<E_SoundType, string>() { { E_SoundType.BGM, "BGM" }, { E_SoundType.SFX, "SFX" } };
 
     AudioSource m_BGMSource;
     AudioSource m_SFXSource;
@@ -20,6 +23,11 @@ public class SoundManager : Manager<SoundManager>
         m_SFXSource = gameObject.AddComponent<AudioSource>();
         m_SFXSource.loop = false;
         m_SFXSource.outputAudioMixerGroup = m_AudioMixer.FindMatchingGroups("SFX")[0];
+
+    }
+
+    private void Update()
+    {
 
     }
     public static AudioClip GetButtonClip()
@@ -37,8 +45,8 @@ public class SoundManager : Manager<SoundManager>
         m_BGMSource.Play();
     }
 
-    public void Set_Volume()
+    public void Set_Volume(E_SoundType type, float volume)
     {
-        m_AudioMixer.SetFloat()
+        m_AudioMixer.SetFloat(D_Mixer[type], volume);
     }
 }
