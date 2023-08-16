@@ -252,6 +252,7 @@ GameObject:
   - component: {fileID: 1151940961}
   - component: {fileID: 1151940960}
   - component: {fileID: 1151940962}
+  - component: {fileID: 1151940963}
   m_Layer: 0
   m_Name: Managers
   m_TagString: Untagged
@@ -301,3 +302,18 @@ MonoBehaviour:
   m_Version: 
   m_Cheat: 0
   m_Ad: 0
+--- !u!114 &1151940963
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1151940959}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 00cdc89623aaf9945a52233bcd890568, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_AudioMixer: {fileID: 24100000, guid: e34fa4bce9993174796de3de6812c612, type: 2}
+  Test_BGMVolume: 0
+  Test_SFXVolume: 0

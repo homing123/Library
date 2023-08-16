@@ -25,6 +25,7 @@ public class LanguageManager : Manager<LanguageManager>
         m_UserLanguage.ChangeLanguage(e_lang);
         ev_LanguageChanged?.Invoke(this, e_lang);
     }
+  
     void Init_UD()
     {
         Debug.Log("이닛 랭귀지");
@@ -39,6 +40,22 @@ public class LanguageManager : Manager<LanguageManager>
                 break;
         }
     }
+
+
+    #region Test
+
+    [SerializeField] E_Language Test_Language;
+    [ContextMenu("언어 변경")]
+    public void Test_Kor()
+    {
+        ChangeLanguage(Test_Language);
+    }
+    [ContextMenu("로그")]
+    public void Test_Log()
+    {
+        Debug.Log("현재 언어 : " + m_UserLanguage.Language);
+    }
+    #endregion
 }
 public class User_Language
 {

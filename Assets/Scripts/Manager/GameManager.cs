@@ -24,6 +24,7 @@ public class GameManager : MonoBehaviour
         temp = LanguageManager.Instance;
         temp = TimeManager.Instance;
         temp = SoundManager.Instance;
+        temp = QuestManager.Instance;
 
         StartCoroutine(TimeManager.Instance.Get_CurTime());
         while(TimeManager.isCurTimeSet == false)
@@ -51,35 +52,16 @@ public class GameManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.R))
-        {
-            UserManager.Reset_Data();
-        }
-
-        if (Input.GetKeyDown(KeyCode.A))
-        {
-            Inven_Log();
-        }
-        if (Input.GetKeyDown(KeyCode.B))
-        {
-            Get_Item(1, 0, 500);
-        }
-        if (Input.GetKeyDown(KeyCode.C))
-        {
-            Get_Item(2, 0, 3);
-        }
-        if (Input.GetKeyDown(KeyCode.D))
-        {
-            Remove_Item(1, 0, 300);
-        }
        
-        if (Input.GetKeyDown(KeyCode.E))
-        {
-            Remove_Item(1, 1, 300);
-        }
     }
 
     #region Test_Function
+    [ContextMenu("UD 리셋")]
+    public void UD_Reset()
+    {
+        UserManager.Reset_Data();
+        ac_DataLoaded?.Invoke();
+    }
     void Inven_Log()
     {
         Debug.Log("인벤 로그 : ");

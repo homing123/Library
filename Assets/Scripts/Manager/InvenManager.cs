@@ -4,8 +4,9 @@ using System;
 
 public class InvenManager : Manager<InvenManager>
 {
-
     public User_Inven m_UserInven;
+
+    public static event EventHandler ev_InvenChanged;
 
     private void Awake()
     {
@@ -15,6 +16,15 @@ public class InvenManager : Manager<InvenManager>
         StreamingManager.Read_Data<J_ItemData>(StreamingManager.Get_StreamingPath(J_ItemData.Path), ItemData.Data_DicSet);
     }
 
+    private void LateUpdate()
+    {
+        if (User_Inven.isChanged)
+        {
+            m_UserInven.SaveData();
+            Debug.Log("인벤 변경 이벤트 실행");
+            ev_InvenChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
     void Init_UD()
     {
         m_UserInven = new User_Inven();
@@ -33,6 +43,15 @@ public class InvenManager : Manager<InvenManager>
     public void Add((int kind, int id, int count) add_info)
     {
         m_UserInven.Add(new (int kind, int id, int count)[] { add_info });
+    }
+    public void Add(int[] kind, int[] id, int[] count)
+    {
+        var add_info = new (int, int, int)[kind.Length];
+        for(int i = 0; i < add_info.Length; i++)
+        {
+            add_info[i] = (kind[i], id[i], count[i]);
+        }
+        m_UserInven.Add(add_info);
     }
 
     
@@ -92,16 +111,48 @@ public class InvenManager : Manager<InvenManager>
     {
         return m_UserInven.AvailablePurchase(price_info.ToArray());
     }
-   
+
     #endregion
-   
-    
+
+    #region Test
+
+    [SerializeField] int Test_Kind;
+    [SerializeField] int Test_ID;
+    [SerializeField] int Test_Count;
+    [ContextMenu("획득")]
+    public void Test_Add()
+    {
+        Add((Test_Kind, Test_ID, Test_Count));
+    }
+    [ContextMenu("제거")]
+    public void Test_Remove()
+    {
+        if(AvailablePurchase((Test_Kind, Test_ID, Test_Count)))
+        {
+            Remove_bykind((Test_Kind, Test_ID, Test_Count));
+        }
+        else
+        {
+            Debug.Log("제거 불가능");
+        }
+    }
+    [ContextMenu("로그")]
+    public void Test_Log()
+    {
+        foreach(int key in m_UserInven.D_Inven.Keys)
+        {
+            Debug.Log("키 : " + key + " kind : " + m_UserInven.D_Inven[key].Kind + " id : " + m_UserInven.D_Inven[key].Id + " count : " + m_UserInven.D_Inven[key].Count);
+        }
+    }
+    #endregion
 
 }
 //[System.Serializable]
 public class User_Inven
 {
-    static string m_localpath;
+    static string m_localpath; 
+    public static bool isChanged;
+
     public static string LocalPath
     {
         get
@@ -231,7 +282,7 @@ public class User_Inven
                 }
             }
         }
-        SaveData();
+        isChanged = true;
     }
     public void Remove((int key, int count)[] remove_info)
     {
@@ -258,7 +309,7 @@ public class User_Inven
                 throw new Exception("Inven Remove Key is Null :  ( key : " + remove_info[i].key + " )");
             }
         }
-        SaveData();
+        isChanged = true;
     }
     public bool AvailablePurchase((int kind, int id, int count)[] price_info)
     {
@@ -274,9 +325,10 @@ public class User_Inven
         }
         return true;
     }
-    void SaveData()
+    public void SaveData()
     {
         UserManager.Save_LocalUD(LocalPath, this);
+        isChanged = false; 
     }
 
 }
@@ -330,6 +382,26 @@ public class ItemData
             else
             {
                 throw new Exception("ItemData key is null : " + key.kind + " " + key.id);
+            }
+        }
+    }
+    public static bool Get((int kind, int id) key, out ItemData itemdata)
+    {
+        if (D_Data.Count == 0)
+        {
+            throw new Exception("ItemData count is 0");
+        }
+        else
+        {
+            if (D_Data.ContainsKey(key))
+            {
+                itemdata = D_Data[key];
+                return true;
+            }
+            else
+            {
+                itemdata = null;
+                return false;
             }
         }
     }

@@ -70,7 +70,11 @@ public class Manager<T> : MonoBehaviour where T : MonoBehaviour
         {
             if (m_instance == null)
             {
-                m_instance = GameManager.Instance.gameObject.AddComponent<T>();
+                m_instance = FindObjectOfType<T>();
+                if (m_instance == null)
+                {
+                    m_instance = GameManager.Instance.gameObject.AddComponent<T>();
+                }
             }
             return m_instance;
         }

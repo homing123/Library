@@ -4,16 +4,22 @@ using System.Collections.Generic;
 public class SoundManager : Manager<SoundManager>
 {
     [SerializeField] AudioMixer m_AudioMixer;
+
     public enum E_SoundType
     {
         BGM,
         SFX,
+        Echo,
     }
 
-    static Dictionary<E_SoundType, string> D_Mixer = new Dictionary<E_SoundType, string>() { { E_SoundType.BGM, "BGM" }, { E_SoundType.SFX, "SFX" } };
+    static Dictionary<E_SoundType, string> D_Mixer = new Dictionary<E_SoundType, string>() { { E_SoundType.BGM, "BGM" }, { E_SoundType.SFX, "SFX" } ,
+        {E_SoundType.Echo, "Echo" } };
 
     AudioSource m_BGMSource;
     AudioSource m_SFXSource;
+    AudioSource m_EchoSource;
+
+    User_Sound m_UserSound;
 
     private void Awake()
     {
@@ -23,12 +29,27 @@ public class SoundManager : Manager<SoundManager>
         m_SFXSource = gameObject.AddComponent<AudioSource>();
         m_SFXSource.loop = false;
         m_SFXSource.outputAudioMixerGroup = m_AudioMixer.FindMatchingGroups("SFX")[0];
+        m_EchoSource = gameObject.AddComponent<AudioSource>();
+        m_EchoSource.loop = false;
+        m_EchoSource.outputAudioMixerGroup = m_AudioMixer.FindMatchingGroups("Echo")[0];
 
+        UserManager.Add_Local(User_Sound.LocalPath, Init_UD, () => UserManager.Save_LocalUD(User_Inven.LocalPath, m_UserSound), () => m_UserSound = UserManager.Load_LocalUD<User_Sound>(User_Sound.LocalPath));
+        GameManager.ac_DataLoaded += Ac_DataLoaded;
     }
 
-    private void Update()
+    void Ac_DataLoaded()
     {
-
+        Set_Volume(E_SoundType.BGM, m_UserSound.BGM_Volume);
+        Set_Volume(E_SoundType.SFX, m_UserSound.SFX_Volume);
+    }
+  
+    void Init_UD()
+    {
+        m_UserSound = new User_Sound()
+        {
+            SFX_Volume = 1,
+            BGM_Volume = 1
+        };
     }
     public static AudioClip GetButtonClip()
     {
@@ -38,15 +59,98 @@ public class SoundManager : Manager<SoundManager>
     {
         m_SFXSource.PlayOneShot(clip);
     }
+    public void Play_Echo(AudioClip clip)
+    {
+        m_EchoSource.PlayOneShot(clip);
+    }
     public void Play_BGM(AudioClip clip)
     {
         m_BGMSource.Stop();
         m_BGMSource.clip = clip;
         m_BGMSource.Play();
     }
-
+    /// <summary>
+    /// volume range = (0 ~ 1)
+    /// </summary>
+    /// <param name="type"></param>
+    /// <param name="volume"></param>
     public void Set_Volume(E_SoundType type, float volume)
     {
-        m_AudioMixer.SetFloat(D_Mixer[type], volume);
+        m_AudioMixer.SetFloat(D_Mixer[type], User_To_AM(volume));
     }
+    float AM_To_User(float audiomixer_volume)
+    { 
+        if (audiomixer_volume == -80)
+        {
+            return 0;
+        }
+        else
+        {
+            return audiomixer_volume * 0.025f + 1;
+        }
+    }
+    float User_To_AM(float user_volume)
+    {
+        //volume (0 ~ 1) => (-40 ~ 0)
+        if (user_volume == 0)
+        {
+            return -80;
+        }
+        else
+        {
+            return (user_volume - 1) * 40;
+        }
+    }
+    /// <summary>
+    /// 소리 설정값은 바뀔때마다 저장이 아닌 변경 완료 후 저장되도록 해야함 즉 savedata를 따로 불러야함
+    /// </summary>
+    public void SaveData()
+    {
+        float bgm_volume, sfx_volume;
+        m_AudioMixer.GetFloat(D_Mixer[E_SoundType.BGM], out bgm_volume);
+        m_UserSound.BGM_Volume = AM_To_User(bgm_volume);
+
+        m_AudioMixer.GetFloat(D_Mixer[E_SoundType.SFX], out sfx_volume);
+        m_UserSound.SFX_Volume = AM_To_User(sfx_volume);
+
+        UserManager.Save_LocalUD(User_Sound.LocalPath, m_UserSound);
+    }
+
+    #region Test
+    [SerializeField] float Test_BGMVolume;
+    [SerializeField] float Test_SFXVolume;
+    [ContextMenu("저장")]
+    public void Test_Save()
+    {
+        Set_Volume(E_SoundType.BGM, Test_BGMVolume);
+        Set_Volume(E_SoundType.SFX, Test_SFXVolume);
+        SaveData();
+    }
+
+    [ContextMenu("로그")]
+    public void Test_Log()
+    {
+        Debug.Log("Volume : bgm " + m_UserSound.BGM_Volume + " volume " + m_UserSound.SFX_Volume);
+    }
+    #endregion
+}
+
+public class User_Sound
+{
+    static string m_localpath;
+
+    public static string LocalPath
+    {
+        get
+        {
+            if (m_localpath == null)
+            {
+                m_localpath = Application.persistentDataPath + "/Sound.txt";
+            }
+            return m_localpath;
+        }
+    }
+
+    public float SFX_Volume;
+    public float BGM_Volume;
 }

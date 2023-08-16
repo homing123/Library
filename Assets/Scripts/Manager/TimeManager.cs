@@ -67,11 +67,21 @@ public class TimeManager : Manager<TimeManager>
                 week_count = (day_count - nextDOWcount) / 7 + 1;
             }
             Debug.Log("일일 횟수 : " + day_count + " 주간 횟수 : " + week_count);
+            m_UserTime.Set_AccessTime(Cur_Time.Get_TodayResetTime());
             ev_DailyReset?.Invoke(this, day_count);
             ev_WeeklyReset?.Invoke(this, week_count);
 
         }
     }
+
+    #region Test
+
+    [ContextMenu("로그")]
+    public void Test_Log()
+    {
+        Debug.Log(m_UserTime.Get_AccessTime());
+    }
+    #endregion
 }
 
 public class User_Time
