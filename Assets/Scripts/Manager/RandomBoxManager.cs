@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System;
 
 public class RandomBoxManager : MonoBehaviour
 {
@@ -129,22 +130,23 @@ public class RandomBoxData
             per_total += l_per[i].per;
             random_info.Add(l_per[i]);
         }
-        for (int i = 0; i < l_per.Count; i++)
+
+        if (l_none_per.Count > 0)
         {
-            random_info.Add(l_per[i]);
-        }
-        if (l_none_per.Count == 0)
-        {
-            var arr_per = new float[l_per.Count];
-            for(int i = 0; i < arr_per.Length; i++)
+            if (per_total < 100)
             {
-                arr_per[i] = l_per[i].per;
+                float none_per = (100 - per_total) / l_none_per.Count;
+                for(int i = 0; i < l_none_per.Count; i ++)
+                {
+                    random_info.Add((l_none_per[i].kind, l_none_per[i].id, l_none_per[i].count, none_per));
+                }
+            }
+            else
+            {
+                throw new Exception("확률 미지정 아이템이 있는데 확률값이 100이 넘습니다");
             }
         }
-        else
-        {
-            //100 - 정해진확률값 후 남은값을 n목록들이 n등분해서 계산
-
-        }
+        
+        //랜덤박스들 풀어서 넘겨줘야함
     }
 }
