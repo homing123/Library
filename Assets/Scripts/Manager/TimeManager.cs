@@ -11,6 +11,8 @@ public class TimeManager : Manager<TimeManager>
     public const int Reset_Minute = 32;
     public const int Reset_Second = 55;
     public const DayOfWeek Reset_DOW = DayOfWeek.Wednesday;
+    public const int Reset_Day = 1;
+
 
     public User_Time m_UserTime;
 
@@ -35,6 +37,7 @@ public class TimeManager : Manager<TimeManager>
 
     public static event EventHandler<int> ev_DailyReset;
     public static event EventHandler<int> ev_WeeklyReset;
+    public static event EventHandler<int> ev_MonthReset;
 
     private void Awake()
     {
@@ -66,24 +69,24 @@ public class TimeManager : Manager<TimeManager>
     }
     public void Access_Reset_Check()
     {
-        if(isCurTimeSet == false)
-        {
-            throw new Exception("Cur Time Not Set");
-        }
-
+        DateTime cur_time = Cur_Time;
         DateTime Before_Access = m_UserTime.Get_AccessTime();
-        Debug.Log("이전 : " + Before_Access.ToString() + " 현재: " + Cur_Time.ToString());
+
+        //Before_Access = new DateTime(2024, 8, 3, 0, 0, 0);
+        //cur_time = new DateTime(2024, 8, 5, 0, 0, 0);
+        Debug.Log("이전 : " + Before_Access.ToString() + " 현재: " + cur_time.ToString());
         if (Before_Access.Year == 1)
         {
             //첫 접속
-            m_UserTime.Set_AccessTime(Cur_Time.Get_TodayResetTime());
+            m_UserTime.Set_AccessTime(cur_time.Get_TodayResetTime());
             Debug.Log("첫접속");
             //출석 + 1
         }
         else
         {
-            int day_count = (Cur_Time - Before_Access).Days;
+            int day_count = (cur_time - Before_Access).Days;
             int week_count;
+            int month_count;
             int nextDOWcount = Before_Access.NextDayOfWeek(Reset_DOW);
             if (nextDOWcount > day_count)
             {
@@ -93,10 +96,24 @@ public class TimeManager : Manager<TimeManager>
             {
                 week_count = (day_count - nextDOWcount) / 7 + 1;
             }
-            Debug.Log("일일 횟수 : " + day_count + " 주간 횟수 : " + week_count);
+            int month_value = (cur_time.Year - Before_Access.Year) * 12 + (cur_time.Month - Before_Access.Month) - 1;
+
+            if(Before_Access.Day < Reset_Day)
+            {
+                month_value++;
+            }
+            if(cur_time.Day >= Reset_Day)
+            {
+                month_value++;
+            }
+            month_count = month_value;
+
+            Debug.Log("일일 횟수 : " + day_count + " 주간 횟수 : " + week_count + " 월간 횟수 : " + month_count);
             m_UserTime.Set_AccessTime(Cur_Time.Get_TodayResetTime());
             ev_DailyReset?.Invoke(this, day_count);
             ev_WeeklyReset?.Invoke(this, week_count);
+            ev_MonthReset?.Invoke(this, month_count);
+
 
         }
     }
