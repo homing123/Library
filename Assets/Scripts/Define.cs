@@ -13,6 +13,38 @@ public class Define
         canvas.additionalShaderChannels = AdditionalCanvasShaderChannels.TexCoord1 | AdditionalCanvasShaderChannels.Normal | AdditionalCanvasShaderChannels.Tangent;
     }
 }
+public class Math_Define
+{
+    static int _Get_RandomResult(float[] per)
+    {
+        float total_value = 0;
+        for(int i = 0; i < per.Length; i++)
+        {
+            if (per[i] > 0)
+            {
+                total_value += per[i];
+            }
+        }
+
+        float random_value = UnityEngine.Random.Range(0, total_value);
+        for(int i = 0; i < per.Length; i++)
+        {
+            if(random_value - per[i] < 0)
+            {
+                return i;
+            }
+        }
+        throw new Exception("RandomResult Error : " + total_value + " " + random_value + " " + per.Length);
+    }
+    public static int Get_RandomResult(float[] per)
+    {
+        return _Get_RandomResult(per);
+    }
+    public static int Get_RandomResult(List<float> per)
+    {
+        return _Get_RandomResult(per.ToArray());
+    }
+}
 public class Single<T> : MonoBehaviour where T : MonoBehaviour
 {
     static T m_instance;
@@ -100,4 +132,5 @@ public static class Ex_Define
         }
         return idx;
     }
+  
 }

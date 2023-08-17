@@ -222,7 +222,7 @@ public class User_Quest
                 D_Quest[id].State = E_QuestState.Complete;
 
                 QuestData cur_quest = QuestData.Get(id);
-                InvenManager.Instance.Add(cur_quest.Reward_Kind, cur_quest.Reward_ID, cur_quest.Reward_Count);
+                InvenManager.Instance.Add(cur_quest.Reward_Info);
             }
             else
             {
@@ -276,9 +276,7 @@ public class QuestData
     public int Mission_Kind;
     public int Mission_ID;
     public int Mission_Count;
-    public int[] Reward_Kind;
-    public int[] Reward_ID;
-    public int[] Reward_Count;
+    public (int, int, int)[] Reward_Info;
 
     public static void Data_DicSet(J_QuestData j_obj)
     {
@@ -297,10 +295,9 @@ public class QuestData
                 Mission_Kind = j_obj.Mission_Kind[i],
                 Mission_ID = j_obj.Mission_ID[i],
                 Mission_Count = j_obj.Mission_Count[i],
-                Reward_Kind = new int[] { j_obj.Reward_Kind_0[i] },
-                Reward_ID = new int[] { j_obj.Reward_ID_0[i] },
-                Reward_Count = new int[] { j_obj.Reward_Count_0[i] },
             };
+            obj.Reward_Info = InvenManager.ToItemInfo(new int[] { j_obj.Reward_Kind_0[i] }, new int[] { j_obj.Reward_ID_0[i] }, new int[] { j_obj.Reward_Count_0[i] });
+
             D_Data.Add(obj.ID, obj);
         }
     }

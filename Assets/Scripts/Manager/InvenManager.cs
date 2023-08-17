@@ -4,6 +4,8 @@ using System;
 
 public class InvenManager : Manager<InvenManager>
 {
+    public const int RandomboxKind = 100;
+
     public User_Inven m_UserInven;
 
     public static event EventHandler ev_InvenChanged;
@@ -112,6 +114,19 @@ public class InvenManager : Manager<InvenManager>
 
     #endregion
 
+
+    public static (int kind,int id,int count)[] ToItemInfo(int[] kind, int[] id, int[] count)
+    {
+        List<(int, int, int)> l_info = new List<(int, int, int)>();
+        for(int i = 0; i < count.Length; i++)
+        {
+            if(count[i] != 0)
+            {
+                l_info.Add((kind[i], id[i], count[i]));
+            }
+        }
+        return l_info.ToArray();
+    }
     #region Test
 
     [SerializeField] int Test_Kind;
@@ -336,6 +351,7 @@ public class J_ItemData
 
     public int[] Kind;
     public int[] ID;
+    public bool[] GachaLock;
     public int[] Overlap_Size;
     public int[] Name;
 
@@ -347,6 +363,7 @@ public class ItemData
 
     public int Kind;
     public int ID;
+    public bool GachaLock;
     public int Overlap_Size;
     public int Name;
 
@@ -358,6 +375,7 @@ public class ItemData
             {
                 Kind = j_obj.Kind[i],
                 ID = j_obj.ID[i],
+                GachaLock = j_obj.GachaLock[i],
                 Overlap_Size = j_obj.Overlap_Size[i],
                 Name = j_obj.Name[i]
             };
