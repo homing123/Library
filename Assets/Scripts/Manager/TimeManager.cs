@@ -14,24 +14,51 @@ public class TimeManager : Manager<TimeManager>
 
     public User_Time m_UserTime;
 
-    public DateTime Cur_Time;
+    double Time_Diff; // NetUTC - LocalUTC
+
+    public DateTime Cur_Time
+    {
+        get
+        {
+            if (isCurTimeSet == false)
+            {
+                throw new Exception("Cur Time is Not Set");
+            }
+            else
+            {
+                return DateTime.UtcNow.AddSeconds(Time_Diff);
+            }
+        }
+    }
+
     public static bool isCurTimeSet; //현재시간 설정이 되어 있는가  (시작시, 홈화면으로나갔다가 들어올시 false 로 바뀜)
 
     public static event EventHandler<int> ev_DailyReset;
     public static event EventHandler<int> ev_WeeklyReset;
+
     private void Awake()
     {
-
         UserManager.Add_Local(User_Time.LocalPath, Init_UD, () => UserManager.Save_LocalUD(User_Time.LocalPath, m_UserTime), () => m_UserTime = UserManager.Load_LocalUD<User_Time>(User_Time.LocalPath));
-
         GameManager.ac_DataLoaded += Access_Reset_Check;
+        InputManager.ev_ApplicationPause += Ev_ApplicationPause;
     }
     public IEnumerator Get_CurTime(Action ac_success = null)
     {
-        Cur_Time = DateTime.Now;
+        DateTime Net_UTC = DateTime.UtcNow;
+        DateTime Local_UTC = DateTime.UtcNow;
+        Time_Diff = (Net_UTC - Local_UTC).TotalSeconds;
+        Debug.Log("시간 세팅 Net : " + Net_UTC.ToString() + " Local : " + Local_UTC + " DiffValue : " + Time_Diff);
         isCurTimeSet = true;
         ac_success?.Invoke();
         yield break;
+    }
+    void Ev_ApplicationPause(object sender, bool pause)
+    {
+        if (pause == false)
+        {
+            isCurTimeSet = false;
+            StartCoroutine(Get_CurTime());
+        }
     }
     void Init_UD()
     {

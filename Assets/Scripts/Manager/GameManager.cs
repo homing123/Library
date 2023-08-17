@@ -25,6 +25,7 @@ public class GameManager : MonoBehaviour
         temp = TimeManager.Instance;
         temp = SoundManager.Instance;
         temp = QuestManager.Instance;
+        temp = InputManager.Instance;
 
         StartCoroutine(TimeManager.Instance.Get_CurTime());
         while(TimeManager.isCurTimeSet == false)
