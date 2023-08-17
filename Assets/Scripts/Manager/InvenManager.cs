@@ -10,9 +10,7 @@ public class InvenManager : Manager<InvenManager>
 
     private void Awake()
     {
-
         UserManager.Add_Local(User_Inven.LocalPath, Init_UD, () => UserManager.Save_LocalUD(User_Inven.LocalPath, m_UserInven), () => m_UserInven = UserManager.Load_LocalUD<User_Inven>(User_Inven.LocalPath));
-
         StreamingManager.Read_Data<J_ItemData>(StreamingManager.Get_StreamingPath(J_ItemData.Path), ItemData.Data_DicSet);
     }
 
@@ -334,7 +332,7 @@ public class User_Inven
 }
 public class J_ItemData
 {
-    public const string Path = "Inven";
+    public const string Path = "Item";
 
     public int[] Kind;
     public int[] ID;

@@ -6,6 +6,7 @@ public class GameManager : MonoBehaviour
 {
 
     public static Action ac_DataLoaded;
+    public static bool isDataLoaded = false;
     public static GameManager Instance;
     WaitForSecondsRealtime seconds = new WaitForSecondsRealtime(0.1f);
     private void Awake()
@@ -45,8 +46,9 @@ public class GameManager : MonoBehaviour
         }
         //로그인
 
-
         ac_DataLoaded?.Invoke();
+        isDataLoaded = true;
+
         Debug.Log("완료");
     }
 

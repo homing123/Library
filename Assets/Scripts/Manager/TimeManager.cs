@@ -45,6 +45,22 @@ public class TimeManager : Manager<TimeManager>
         GameManager.ac_DataLoaded += Access_Reset_Check;
         InputManager.ev_ApplicationPause += Ev_ApplicationPause;
     }
+    float update_time;
+    private void Update()
+    {
+        update_time += Time.unscaledDeltaTime;
+        if(update_time >= 1)
+        {
+            if (isCurTimeSet && GameManager.isDataLoaded)
+            {
+                update_time = 0;
+                if (Cur_Time.CompareTo(m_UserTime.Get_AccessTime().AddDays(1)) > 0)
+                {
+                    Access_Reset_Check();
+                }
+            }
+        }
+    }
     public IEnumerator Get_CurTime(Action ac_success = null)
     {
         DateTime Net_UTC = DateTime.UtcNow;
@@ -119,7 +135,12 @@ public class TimeManager : Manager<TimeManager>
     }
 
     #region Test
-
+    [SerializeField] double Test_TimeDiff;
+    [ContextMenu("시간차이 설정")]
+    public void Test_DiffSet()
+    {
+        Time_Diff = Test_TimeDiff;
+    }
     [ContextMenu("로그")]
     public void Test_Log()
     {
