@@ -29,7 +29,8 @@ public class Math_Define
         float random_value = UnityEngine.Random.Range(0, total_value);
         for(int i = 0; i < per.Length; i++)
         {
-            if(random_value - per[i] < 0)
+            random_value -= per[i];
+            if (random_value < 0)
             {
                 return i;
             }
@@ -43,6 +44,15 @@ public class Math_Define
     public static int Get_RandomResult(List<float> per)
     {
         return _Get_RandomResult(per.ToArray());
+    }
+
+    public static float Get_TimeValue(float curtime, float maxtime, float startvalue = 0, float endvalue = 1)
+    {
+        if(maxtime == 0)
+        {
+            return startvalue;
+        }
+        return startvalue + (curtime / maxtime * (endvalue - startvalue));
     }
 }
 public class Single<T> : MonoBehaviour where T : MonoBehaviour

@@ -27,6 +27,8 @@ public class GameManager : MonoBehaviour
         temp = SoundManager.Instance;
         temp = QuestManager.Instance;
         temp = InputManager.Instance;
+        temp = StoreManager.Instance;
+        temp = RandomBoxManager.Instance;
 
         StartCoroutine(TimeManager.Instance.Get_CurTime());
         while(TimeManager.isCurTimeSet == false)
@@ -50,6 +52,8 @@ public class GameManager : MonoBehaviour
         isDataLoaded = true;
 
         Debug.Log("¿Ï·á");
+
+        SceneHandler.SceneLoad(SceneHandler.PlayScene);
     }
 
     // Update is called once per frame
