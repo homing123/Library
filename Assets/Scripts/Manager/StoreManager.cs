@@ -60,6 +60,7 @@ public class User_Store : UserData
 
     public List<Record> L_Purchase_Record = new List<Record>();
     public Dictionary<int, StoreLock> D_StoreLock = new Dictionary<int, StoreLock>();
+    public static event EventHandler ev_StoreChanged;
     public class Record
     {
         public string Time;
@@ -79,7 +80,15 @@ public class User_Store : UserData
     {
         if (UserManager.Use_Local)
         {
-            LOCALUSER
+            var data = await LocalUser_Store.Buy(id, count);
+            D_StoreLock = data.D_StoreLock;
+            L_Purchase_Record = data.L_Purchase_Record;
+            User_Inven.m_UserInven.D_Inven = data.D_Inven;
+            ev_StoreChanged?.Invoke(this, EventArgs.Empty);
+        }
+        else
+        {
+            //server
         }
     }
     public async Task<User_Inven> Buy()
@@ -89,7 +98,7 @@ public class User_Store : UserData
 }
 public class LocalUser_Store
 {
-    public static async Task<(Dictionary<int, User_Store.StoreLock>, List<User_Store.Record>, Dictionary<int,User_Inven.Inven>)> Buy(int id, int count = 1)
+    public static async Task<(Dictionary<int, User_Store.StoreLock> D_StoreLock, List<User_Store.Record> L_Purchase_Record, Dictionary<int,User_Inven.Inven> D_Inven)> Buy(int id, int count = 1)
     {
         await Task.Delay(1);
         User_Store m_userstore = UserManager.Load_LocalUD<User_Store>(User_Store.Path);
@@ -143,8 +152,9 @@ public class LocalUser_Store
                 });
             }
 
-            UserManager.Save_LocalUD()
+            UserManager.Save_LocalUD(User_Store.Path, m_userstore);
             Debug.Log("备概 贸府 场");
+            return (m_userstore.D_StoreLock, m_userstore.L_Purchase_Record, d_inven);
         }
         else
         {
