@@ -2,8 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
+using UnityEngine;
 public class UserManager
 {
+    public const bool Use_Local = true;
+
+    public static Action ac_Init;
+    public static Action ac_Load;
     public static List<(string path, Action ac_init, Action ac_save, Action ac_load)> L_Local = new List<(string path, Action ac_init, Action ac_save, Action ac_load)>();
     
     public static void Add_Local(string path, Action ac_init, Action ac_save, Action ac_load)
@@ -43,12 +48,14 @@ public class UserManager
 
     public static T Load_LocalUD<T>(string localpath)
     {
+        localpath = Path.Combine(Application.persistentDataPath, localpath);
         string data = File.ReadAllText(localpath);
         return JsonConvert.DeserializeObject<T>(data);
     }
 
     public static void Save_LocalUD(string localpath, object obj)
     {
+        localpath = Path.Combine(Application.persistentDataPath, localpath);
         File.WriteAllText(localpath, JsonConvert.SerializeObject(obj));
     }
 

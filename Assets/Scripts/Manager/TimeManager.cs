@@ -230,5 +230,13 @@ public static class Ex_Time
         return new DateTime(datetime.Year, datetime.Month, datetime.Day, TimeManager.Reset_Hour, TimeManager.Reset_Minute, TimeManager.Reset_Second).AddDays(-1);
 
     }
+    public static (int year, int month, int day, int hour, int minute, int second) ToInt(this DateTime datetime)
+    {
+        return (datetime.Year, datetime.Month, datetime.Day, datetime.Hour, datetime.Minute, datetime.Second);
+    }
+    public static DateTime ToDateTime(int year, int month, int day, int hour, int minute, int second)
+    {
+        new DateTime(year, month, day, hour, minute, second);
+    }
 }
 

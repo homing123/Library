@@ -1,49 +1,27 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System;
-
+using System.Threading.Tasks;
 public class InvenManager : Manager<InvenManager>
 {
     public const int RandomboxKind = 100;
 
-    public User_Inven m_UserInven;
-
-    public static event EventHandler ev_InvenChanged;
-
     private void Awake()
     {
-        UserManager.Add_Local(User_Inven.LocalPath, Init_UD, () => UserManager.Save_LocalUD(User_Inven.LocalPath, m_UserInven), () => m_UserInven = UserManager.Load_LocalUD<User_Inven>(User_Inven.LocalPath));
+        User_Inven.m_UserInven = new User_Inven();
         StreamingManager.Read_Data<J_ItemData>(StreamingManager.Get_StreamingPath(J_ItemData.Path), ItemData.Data_DicSet);
-    }
-
-    private void LateUpdate()
-    {
-        if (User_Inven.isChanged)
-        {
-            m_UserInven.SaveData();
-            Debug.Log("인벤 변경 이벤트 실행");
-            ev_InvenChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
-    void Init_UD()
-    {
-        m_UserInven = new User_Inven();
     }
 
     #region Add override
     public void Add((int kind, int id, int count)[] add_info)
     {
-        m_UserInven.Add(add_info);
+        User_Inven.m_UserInven.Add(add_info);
     }
     public void Add(List<(int kind, int id, int count)> add_info)
     {
-        m_UserInven.Add(add_info.ToArray());
+        User_Inven.m_UserInven.Add(add_info.ToArray());
     }
 
-    public void Add((int kind, int id, int count) add_info)
-    {
-        m_UserInven.Add(new (int kind, int id, int count)[] { add_info });
-    }
     public void Add(int[] kind, int[] id, int[] count)
     {
         var add_info = new (int, int, int)[kind.Length];
@@ -51,65 +29,38 @@ public class InvenManager : Manager<InvenManager>
         {
             add_info[i] = (kind[i], id[i], count[i]);
         }
-        m_UserInven.Add(add_info);
+        User_Inven.m_UserInven.Add(add_info);
     }
 
     
     #endregion
     #region Remove override
-    public void Remove_bykind((int kind, int id, int count)[] remove_info )
+    public void Remove_byKind((int kind, int id, int count)[] remove_info )
     {
-        var _remove_info = new (int key, int count)[remove_info.Length];
-        for (int i = 0; i < remove_info.Length; i++)
-        {
-            _remove_info[i].key = m_UserInven.Get_Key(remove_info[i].kind, remove_info[i].id);
-            _remove_info[i].count = remove_info[i].count;
-        }
-
-        m_UserInven.Remove(_remove_info);
+        User_Inven.m_UserInven.Remove_byKind(remove_info);
     }
-    public void Remove_bykind((int kind, int id, int count) remove_info)
+    public void Remove_byKind(List<(int kind, int id, int count)> remove_info)
     {
-        var _remove_info = new (int key, int count)[1] { (m_UserInven.Get_Key(remove_info.kind, remove_info.id), remove_info.count) };
-        m_UserInven.Remove(_remove_info);
-    }
-    public void Remove_bykind(List<(int kind, int id, int count)> remove_info)
-    {
-        var _remove_info = new (int key, int count)[remove_info.Count];
-        for (int i = 0; i < remove_info.Count; i++)
-        {
-            _remove_info[i].key = m_UserInven.Get_Key(remove_info[i].kind, remove_info[i].id);
-            _remove_info[i].count = remove_info[i].count;
-        }
-
-        m_UserInven.Remove(_remove_info);
+        User_Inven.m_UserInven.Remove_byKind(remove_info.ToArray());
     }
     public void Remove_byKey((int key, int count)[] remove_info )
     {
-        m_UserInven.Remove(remove_info);
-    }
-    public void Remove_byKey((int key, int count) remove_info)
-    {
-        m_UserInven.Remove(new (int key, int count)[] { remove_info });
+        User_Inven.m_UserInven.Remove_byKey(remove_info);
     }
     public void Remove_byKey(List<(int key, int count)> remove_info)
     {
-        m_UserInven.Remove(remove_info.ToArray());
+        User_Inven.m_UserInven.Remove_byKey(remove_info.ToArray());
     }
-   
+
     #endregion
-    #region AvailablePurchase override
-    public bool AvailablePurchase((int kind, int id, int count)[] price_info)
+    #region CheckItemCount override
+    public bool CheckItemCount((int kind, int id, int count)[] price_info)
     {
-        return m_UserInven.AvailablePurchase(price_info);
+        return User_Inven.m_UserInven.CheckItemCount(price_info);
     }
-    public bool AvailablePurchase((int kind, int id, int count) price_info)
+    public bool CheckItemCount(List<(int kind, int id, int count)> price_info)
     {
-        return m_UserInven.AvailablePurchase(new (int kind, int id, int count)[] { price_info });
-    }
-    public bool AvailablePurchase(List<(int kind, int id, int count)> price_info)
-    {
-        return m_UserInven.AvailablePurchase(price_info.ToArray());
+        return User_Inven.m_UserInven.CheckItemCount(price_info.ToArray());
     }
 
     #endregion
@@ -135,14 +86,14 @@ public class InvenManager : Manager<InvenManager>
     [ContextMenu("획득")]
     public void Test_Add()
     {
-        Add((Test_Kind, Test_ID, Test_Count));
+        Add((Test_Kind, Test_ID, Test_Count).ToArray());
     }
     [ContextMenu("제거")]
-    public void Test_Remove()
+    public async void Test_Remove()
     {
-        if(AvailablePurchase((Test_Kind, Test_ID, Test_Count)))
+        if(CheckItemCount((Test_Kind, Test_ID, Test_Count).ToArray()))
         {
-            Remove_bykind((Test_Kind, Test_ID, Test_Count));
+            Remove_byKind((Test_Kind, Test_ID, Test_Count).ToArray());
         }
         else
         {
@@ -152,31 +103,24 @@ public class InvenManager : Manager<InvenManager>
     [ContextMenu("로그")]
     public void Test_Log()
     {
-        foreach(int key in m_UserInven.D_Inven.Keys)
+        foreach(int key in User_Inven.m_UserInven.D_Inven.Keys)
         {
-            Debug.Log("키 : " + key + " kind : " + m_UserInven.D_Inven[key].Kind + " id : " + m_UserInven.D_Inven[key].Id + " count : " + m_UserInven.D_Inven[key].Count);
+            Debug.Log("키 : " + key + " kind : " + User_Inven.m_UserInven.D_Inven[key].Kind + " id : " + User_Inven.m_UserInven.D_Inven[key].Id + " count : " + User_Inven.m_UserInven.D_Inven[key].Count);
         }
     }
     #endregion
 
 }
-//[System.Serializable]
-public class User_Inven
-{
-    static string m_localpath; 
-    public static bool isChanged;
+#region UD_Inven
 
-    public static string LocalPath
-    {
-        get
-        {
-            if (m_localpath == null)
-            {
-                m_localpath = Application.persistentDataPath + "/Inven.txt";
-            }
-            return m_localpath;
-        }
-    }
+public class User_Inven : UserData
+{
+    public const string Path = "Inven";
+   
+    public static User_Inven m_UserInven;
+    public static event EventHandler ev_InvenChanged;
+
+
     public Dictionary<int, Inven> D_Inven = new Dictionary<int, Inven>();
     //[System.Serializable]
     public class Inven
@@ -185,63 +129,124 @@ public class User_Inven
         public int Id;
         public int Count;
     }
+    public User_Inven()
+    {
+        
+    }
 
-    bool Find_Addable(int kind, int id, out Inven out_inven)
+    public override void Init_UD()
     {
-        foreach(Inven inven in D_Inven.Values)
-        {
-            if (inven.Kind == kind && inven.Id == id)
-            {
-                if(ItemData.Get((kind, id)).Overlap_Size == 0  || ItemData.Get((kind,id)).Overlap_Size > inven.Count)
-                {
-                    out_inven = inven;
-                    return true;
-                }
-            }
-        }
-        out_inven = null;
-        return false;
+        
     }
-    public int Get_Key(int kind, int id = 0)
+    
+    public async void Add((int kind, int id, int count)[] add_info)
     {
-        foreach(int key in D_Inven.Keys)
+        if (UserManager.Use_Local)
         {
-            if(D_Inven[key].Kind == kind && D_Inven[key].Id == id)
-            {
-                return key;
-            }
-        }
-        return -1;
-    }
-    bool Get(int key, out Inven inven)
-    {
-        if (D_Inven.ContainsKey(key))
-        {
-            inven = D_Inven[key];
-            return true;
+            m_UserInven.D_Inven = await LocalUser_Inven.Add(add_info);
+            ev_InvenChanged?.Invoke(this, EventArgs.Empty);
         }
         else
         {
-            inven = null;
-            return false;
+            //server
         }
     }
 
-    public void Add((int kind, int id, int count)[] add_info)
+    public async void Remove_byKind((int kind, int id, int count)[] remove_info)
     {
+        if (UserManager.Use_Local)
+        {
+            m_UserInven.D_Inven = await LocalUser_Inven.Remove_byKind(remove_info);
+            ev_InvenChanged?.Invoke(this, EventArgs.Empty);
+        }
+        else
+        {
+            //server
+        }
+    }
+    public async void Remove_byKey((int key, int count)[] remove_info)
+    {
+        if (UserManager.Use_Local)
+        {
+            m_UserInven.D_Inven = await LocalUser_Inven.Remove_byKey(remove_info);
+            ev_InvenChanged?.Invoke(this, EventArgs.Empty);
+        }
+        else
+        {
+            //server
+        }
+    }
+    public bool CheckItemCount((int kind, int id, int count)[] item_info)
+    {
+        int[] keys;
+        for (int i = 0; i < item_info.Length; i++)
+        {
+            if (m_UserInven.Get(item_info[i].kind, item_info[i].id, out keys) == false)
+            {
+                return false;
+            }
+            else
+            {
+                int count = 0;
+                for (int j = 0; j < keys.Length; j++)
+                {
+                    count += D_Inven[keys[j]].Count;
+                }
+                if (count < item_info[i].count)
+                {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+}
+public class LocalUser_Inven
+{
+    public static async Task<bool> CheckItemCount((int kind, int id, int count)[] item_info)
+    {
+        await Task.Delay(1);
+        User_Inven m_userinven = UserManager.Load_LocalUD<User_Inven>(User_Inven.Path);
+        int[] keys;
+        for (int i = 0; i < item_info.Length; i++)
+        {
+            if (m_userinven.Get(item_info[i].kind, item_info[i].id, out keys) == false)
+            {
+                return false;
+            }
+            else
+            {
+                int count = 0;
+                for (int j = 0; j < keys.Length; j++)
+                {
+                    count += m_userinven.D_Inven[keys[j]].Count;
+                }
+                if (count < item_info[i].count)
+                {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+    public static async Task<Dictionary<int, User_Inven.Inven>> Add((int kind, int id, int count)[] add_info)
+    {
+        await Task.Delay(1);
+        User_Inven m_userinven = UserManager.Load_LocalUD<User_Inven>(User_Inven.Path);
         User_Inven.Inven inven;
         for (int i = 0; i < add_info.Length; i++)
         {
             ItemData item = ItemData.Get((add_info[i].kind, add_info[i].id));
             if (item.Overlap_Size == 0)
             {
-                if (Find_Addable(add_info[i].kind, add_info[i].id, out inven))
+                if (m_userinven.Find_Addable(add_info[i].kind, add_info[i].id, out inven))
                 {
                     inven.Count += add_info[i].count;
                 }
                 else
                 {
-                    D_Inven.Add(D_Inven.Get_Idx(), new User_Inven.Inven()
+                    m_userinven.D_Inven.Add(m_userinven.D_Inven.Get_Idx(), new User_Inven.Inven()
                     {
                         Kind = add_info[i].kind,
                         Id = add_info[i].id,
@@ -254,7 +259,7 @@ public class User_Inven
                 while (true)
                 {
                     bool Find_Addable_is_None = false; //추가가능한게 더이상 없는경우
-                    if (Find_Addable_is_None == false && Find_Addable(add_info[i].kind, add_info[i].id, out inven))
+                    if (Find_Addable_is_None == false && m_userinven.Find_Addable(add_info[i].kind, add_info[i].id, out inven))
                     {
                         if (inven.Count + add_info[i].count > item.Overlap_Size)
                         {
@@ -273,7 +278,7 @@ public class User_Inven
                         if (add_info[i].count > item.Overlap_Size)
                         {
                             add_info[i].count -= item.Overlap_Size;
-                            D_Inven.Add(D_Inven.Get_Idx(), new User_Inven.Inven()
+                            m_userinven.D_Inven.Add(m_userinven.D_Inven.Get_Idx(), new User_Inven.Inven()
                             {
                                 Kind = add_info[i].kind,
                                 Id = add_info[i].id,
@@ -283,7 +288,7 @@ public class User_Inven
                         }
                         else
                         {
-                            D_Inven.Add(D_Inven.Get_Idx(), new User_Inven.Inven()
+                            m_userinven.D_Inven.Add(m_userinven.D_Inven.Get_Idx(), new User_Inven.Inven()
                             {
                                 Kind = add_info[i].kind,
                                 Id = add_info[i].id,
@@ -295,14 +300,18 @@ public class User_Inven
                 }
             }
         }
-        isChanged = true;
+        UserManager.Save_LocalUD(User_Inven.Path, m_userinven);
+        return m_userinven.D_Inven;
     }
-    public void Remove((int key, int count)[] remove_info)
+
+    public static async Task<Dictionary<int, User_Inven.Inven>> Remove_byKey((int key, int count)[] remove_info)
     {
+        await Task.Delay(1);
+        User_Inven m_userinven = UserManager.Load_LocalUD<User_Inven>(User_Inven.Path);
         User_Inven.Inven inven;
         for (int i = 0; i < remove_info.Length; i++)
         {
-            if (Get(remove_info[i].key, out inven))
+            if (m_userinven.Get(remove_info[i].key, out inven))
             {
                 if (inven.Count < remove_info[i].count)
                 {
@@ -313,7 +322,7 @@ public class User_Inven
                     inven.Count -= remove_info[i].count;
                     if (inven.Count == 0)
                     {
-                        D_Inven.Remove(remove_info[i].key);
+                        m_userinven.D_Inven.Remove(remove_info[i].key);
                     }
                 }
             }
@@ -322,29 +331,134 @@ public class User_Inven
                 throw new Exception("Inven Remove Key is Null :  ( key : " + remove_info[i].key + " )");
             }
         }
-        isChanged = true;
+        UserManager.Save_LocalUD(User_Inven.Path, m_userinven);
+        return m_userinven.D_Inven;
     }
-    public bool AvailablePurchase((int kind, int id, int count)[] price_info)
+    public static async Task<Dictionary<int, User_Inven.Inven>> Remove_byKind((int kind, int id, int count)[] remove_info)
     {
-        //overlapsize 가 무한인것만 가격에 올수있음
-        User_Inven.Inven inven;
-        for (int i = 0; i < price_info.Length; i++)
+        await Task.Delay(1);
+        User_Inven m_userinven = UserManager.Load_LocalUD<User_Inven>(User_Inven.Path);
+        int[] keys;
+
+        for (int i = 0; i < remove_info.Length; i++)
         {
-            int key = Get_Key(price_info[i].kind, price_info[i].id);
-            if (key == -1 || Get(key, out inven) == false || inven.Count < price_info[i].count)
+            if (m_userinven.Get(remove_info[i].kind,remove_info[i].id, out keys))
             {
-                return false;
+                int cur_count = remove_info[i].count;
+                for(int j = 0; j < keys.Length; j++)
+                {
+                    User_Inven.Inven cur_inven = m_userinven.D_Inven[keys[j]];
+                    if (cur_inven.Count > cur_count)
+                    {
+                        cur_inven.Count -= cur_count;
+                        cur_count = 0;
+                        break;
+                    }
+                    else if(cur_inven.Count == cur_count)
+                    {
+                        m_userinven.D_Inven.Remove(keys[j]);
+                        cur_count = 0;
+                        break;
+                    }
+                    else
+                    {
+                        cur_count -= cur_inven.Count;
+                        m_userinven.D_Inven.Remove(keys[j]);
+                    }
+                }
+                if (cur_count > 0)
+                {
+                    throw new Exception("Inven Remove Count Error :  ( kind : " + remove_info[i].kind + " id : " + remove_info[i].id + " count : " + remove_info[i].count + " )");
+                }
+            }
+            else
+            {
+                throw new Exception("Inven Remove Key is Null :  ( kind : " + remove_info[i].kind + " id : " + remove_info[i].id + " count : " + remove_info[i].count + " )");
             }
         }
-        return true;
+        UserManager.Save_LocalUD(User_Inven.Path, m_userinven);
+        return m_userinven.D_Inven;
     }
-    public void SaveData()
+}
+public static class Ex_Inven
+{
+    public static bool Get(this User_Inven m_userinven, int key, out User_Inven.Inven inven)
     {
-        UserManager.Save_LocalUD(LocalPath, this);
-        isChanged = false; 
+        if (m_userinven.D_Inven.ContainsKey(key))
+        {
+            inven = m_userinven.D_Inven[key];
+            return true;
+        }
+        else
+        {
+            inven = null;
+            return false;
+        }
+    }
+    public static bool Get(this User_Inven m_userinven, int kind, int id, out int[] keys)
+    {
+        List<User_Inven.Inven> l_inven = new List<User_Inven.Inven>();
+        List<int> l_key = new List<int>();
+        foreach (int key in m_userinven.D_Inven.Keys)
+        {
+            if (m_userinven.D_Inven[key].Kind == kind && m_userinven.D_Inven[key].Id == id)
+            {
+                if (l_inven.Count == 0)
+                {
+                    l_inven.Add(m_userinven.D_Inven[key]);
+                    l_key.Add(key);
+                }
+                else
+                {
+                    for (int i = 0; i < l_inven.Count; i++)
+                    {
+                        if (l_inven[i].Count > m_userinven.D_Inven[key].Count)
+                        {
+                            l_inven.Insert(i, m_userinven.D_Inven[key]);
+                            l_key.Insert(i, key);
+                            break;
+                        }
+                        if (i == l_inven.Count - 1)
+                        {
+                            l_inven.Add(m_userinven.D_Inven[key]);
+                            l_key.Add(key);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        keys = l_key.ToArray();
+        if (l_inven.Count > 0)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
     }
 
+    public static bool Find_Addable(this User_Inven m_userinven, int kind, int id, out User_Inven.Inven out_inven)
+    {
+        foreach (User_Inven.Inven inven in m_userinven.D_Inven.Values)
+        {
+            if (inven.Kind == kind && inven.Id == id)
+            {
+                if (ItemData.Get((kind, id)).Overlap_Size == 0 || ItemData.Get((kind, id)).Overlap_Size > inven.Count)
+                {
+                    out_inven = inven;
+                    return true;
+                }
+            }
+        }
+        out_inven = null;
+        return false;
+    }
 }
+
+#endregion
+#region Streaming Item
 public class J_ItemData
 {
     public const string Path = "Item";
@@ -423,3 +537,4 @@ public class ItemData
     }
 }
 
+#endregion

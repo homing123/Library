@@ -4,7 +4,7 @@ using UnityEngine;
 using System.Threading.Tasks;
 using System.IO;
 using System;
-
+using Newtonsoft.Json;
 public class Define
 {
     public static void Init_Canvas(Canvas canvas)
@@ -76,7 +76,34 @@ public class Single<T> : MonoBehaviour where T : MonoBehaviour
     }
 
 }
+public class Manager<T> : MonoBehaviour where T : MonoBehaviour
+{
+    static T m_instance;
+    public static T Instance
+    {
+        get
+        {
+            if (m_instance == null)
+            {
+                m_instance = FindObjectOfType<T>();
+                if (m_instance == null)
+                {
+                    m_instance = GameManager.Instance.gameObject.AddComponent<T>();
+                }
+            }
+            return m_instance;
+        }
+    }
+}
 
+public abstract class UserData
+{
+    public UserData()
+    {
+        UserManager.ac_Init += Init_UD;
+    }
+    public abstract void Init_UD();
+}
 
 public class L_Task
 {
@@ -103,25 +130,6 @@ public class L_Task
     }
 }
 
-public class Manager<T> : MonoBehaviour where T : MonoBehaviour
-{
-    static T m_instance;
-    public static T Instance
-    {
-        get
-        {
-            if (m_instance == null)
-            {
-                m_instance = FindObjectOfType<T>();
-                if (m_instance == null)
-                {
-                    m_instance = GameManager.Instance.gameObject.AddComponent<T>();
-                }
-            }
-            return m_instance;
-        }
-    }
-}
 
 public static class Ex_Define
 {
@@ -142,5 +150,9 @@ public static class Ex_Define
         }
         return idx;
     }
-  
+    public static T[] ToArray<T>(this T value)
+    {
+        return new T[] { value };
+    }
+
 }

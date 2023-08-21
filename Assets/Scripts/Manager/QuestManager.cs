@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using System.Threading.Tasks;
 public enum E_QuestState
 {
     None = 0, //없는
@@ -13,54 +14,34 @@ public enum E_QuestState
 }
 public class QuestManager : Manager<QuestManager>
 {
-    User_Quest m_UserQuest;
-
-    public static event EventHandler ev_QuestChanged;
     private void Awake()
     {
-        UserManager.Add_Local(User_Quest.LocalPath, Init_UD, () => UserManager.Save_LocalUD(User_Quest.LocalPath, m_UserQuest), () => m_UserQuest = UserManager.Load_LocalUD<User_Quest>(User_Quest.LocalPath));
-
+        User_Quest.m_UserQuest = new User_Quest();
         StreamingManager.Read_Data<J_QuestData>(StreamingManager.Get_StreamingPath(J_QuestData.Path), QuestData.Data_DicSet);
     }
-    private void LateUpdate()
-    {
-        if (User_Quest.isChanged)
-        {
-            m_UserQuest.SaveData();
-            Debug.Log("퀘스트 변경 이벤트 실행");
-            ev_QuestChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
-    void Init_UD()
-    {
-        m_UserQuest = new User_Quest();
-    }
-    
+  
     public E_QuestState Get_State(int id)
     {
-        return m_UserQuest.Get_State(id);
+        return User_Quest.m_UserQuest.Get_State(id);
     }
     public void Accept(int id)
     {
-        m_UserQuest.Accept(id);
+        User_Quest.m_UserQuest.Accept(id);
     }
     #region Cancel override
-    public void Cancel(int id)
-    {
-        m_UserQuest.Cancel(new int[] { id });
-    }
+
     public void Cancel(int[] id)
     {
-        m_UserQuest.Cancel(id);
+        User_Quest.m_UserQuest.Cancel(id);
     }
     public void Cancel(List<int> id)   
-    { 
-        m_UserQuest.Cancel(id.ToArray());
+    {
+        User_Quest.m_UserQuest.Cancel(id.ToArray());
     }
     #endregion
     public void Complete(int id)
     {
-        m_UserQuest.Complete(id);
+        User_Quest.m_UserQuest.Complete(id);
     }
 
     #region Test
@@ -78,7 +59,7 @@ public class QuestManager : Manager<QuestManager>
     [ContextMenu("퀘스트 취소")]
     public void Test_Cancel()
     {
-        Cancel(Test_QuestID);
+        Cancel(Test_QuestID.ToArray());
     }
     [ContextMenu("퀘스트 상태 확인")]
     public void Test_StateLog()
@@ -88,44 +69,28 @@ public class QuestManager : Manager<QuestManager>
     [ContextMenu("유저 퀘스트 로그")]
     public void Test_UserLog()
     {
-        foreach(int key in m_UserQuest.D_Quest.Keys)
+        foreach(int key in User_Quest.m_UserQuest.D_Quest.Keys)
         {
-            Debug.Log("key : " + key + " state : " + m_UserQuest.D_Quest[key].State);
+            Debug.Log("key : " + key + " state : " + User_Quest.m_UserQuest.D_Quest[key].State);
         }
     }
     #endregion
 }
-public class User_Quest
+#region UD_Quest
+public class User_Quest : UserData
 {
-    static string m_localpath;
-    public static bool isChanged;
+    public const string Path = "Quest";
+    public static User_Quest m_UserQuest;
+    public static event EventHandler ev_QuestChanged;
 
-    public static string LocalPath
-    {
-        get
-        {
-            if (m_localpath == null)
-            {
-                m_localpath = Application.persistentDataPath + "/Quest.txt";
-            }
-            return m_localpath;
-        }
-    }
     public Dictionary<int, Quest> D_Quest = new Dictionary<int, Quest>();
     public class Quest 
     {
         public E_QuestState State;
     }
-    E_QuestState UserQuest_State(int id)
+    public override void Init_UD()
     {
-        if (D_Quest.ContainsKey(id))
-        {
-            return D_Quest[id].State;
-        }
-        else
-        {
-            return E_QuestState.None;
-        }
+
     }
     public E_QuestState Get_State(int id)
     {
@@ -134,7 +99,7 @@ public class User_Quest
         {
             return E_QuestState.None;
         }
-        E_QuestState state = UserQuest_State(id);
+        E_QuestState state = m_UserQuest.UserQuest_State(id);
 
 
         switch (state)
@@ -142,17 +107,17 @@ public class User_Quest
             case E_QuestState.None:
                 //수락 가능한지 확인 후 리턴
                 bool Acceptable_Item = false;
-                if (cur_quest.Accept_ItemKind == 0 && cur_quest.Accept_ItemID == 0)
+                if (cur_quest.Accept_ItemCount == 0)
                 {
                     Acceptable_Item = true;
                 }
                 else
                 {
-                    Acceptable_Item = InvenManager.Instance.AvailablePurchase((cur_quest.Accept_ItemKind, cur_quest.Accept_ItemID, cur_quest.Accept_ItemCount));
+                    Acceptable_Item = InvenManager.Instance.CheckItemCount((cur_quest.Accept_ItemKind, cur_quest.Accept_ItemID, cur_quest.Accept_ItemCount).ToArray());
                 }
 
                 bool Acceptable_Quest = false;
-                if (cur_quest.Accept_QuestID == 0 || UserQuest_State(cur_quest.Accept_QuestID) == E_QuestState.Complete)
+                if (cur_quest.Accept_QuestID == 0 || m_UserQuest.UserQuest_State(cur_quest.Accept_QuestID) == E_QuestState.Complete)
                 {
                     Acceptable_Quest = true;
                 }
@@ -170,7 +135,104 @@ public class User_Quest
             case E_QuestState.Completable:
             case E_QuestState.UnCompletable:
                 //완료 가능한지 확인 후 리턴
-                if (InvenManager.Instance.AvailablePurchase((cur_quest.Mission_Kind, cur_quest.Mission_ID, cur_quest.Mission_Count)))
+                if (InvenManager.Instance.CheckItemCount((cur_quest.Mission_Kind, cur_quest.Mission_ID, cur_quest.Mission_Count).ToArray()))
+                {
+                    return E_QuestState.Completable;
+                }
+                else
+                {
+                    return E_QuestState.UnCompletable;
+                }
+        }
+
+        throw new Exception("QuestState case is empty : " + state);
+    }
+    public async void Accept(int id)
+    {
+        if (UserManager.Use_Local)
+        {
+            m_UserQuest.D_Quest = await LocalUser_Quest.Accept(id);
+            ev_QuestChanged?.Invoke(this, EventArgs.Empty);
+        }
+        else
+        {
+            //server
+        }
+    }
+    public async void Cancel(int[] id)
+    {
+        if (UserManager.Use_Local)
+        {
+            m_UserQuest.D_Quest = await LocalUser_Quest.Cancel(id);
+            ev_QuestChanged?.Invoke(this, EventArgs.Empty);
+        }
+        else
+        {
+            //server
+        }
+    }
+    public async void Complete(int id)
+    {
+        if (UserManager.Use_Local)
+        {
+            m_UserQuest.D_Quest = await LocalUser_Quest.Complete(id);
+            ev_QuestChanged?.Invoke(this, EventArgs.Empty);
+        }
+        else
+        {
+            //server
+        }
+    }
+}
+
+public class LocalUser_Quest
+{
+    static async  Task<E_QuestState> Get_State(int id)
+    {
+        await Task.Delay(1);
+        User_Quest m_userquest = UserManager.Load_LocalUD<User_Quest>(User_Quest.Path);
+        QuestData cur_quest = QuestData.Get(id);
+        if (cur_quest == null)
+        {
+            return E_QuestState.None;
+        }
+        E_QuestState state = m_userquest.UserQuest_State(id);
+
+
+        switch (state)
+        {
+            case E_QuestState.None:
+                //수락 가능한지 확인 후 리턴
+                bool Acceptable_Item = false;
+                if (cur_quest.Accept_ItemCount == 0)
+                {
+                    Acceptable_Item = true;
+                }
+                else
+                {
+                    Acceptable_Item = await LocalUser_Inven.CheckItemCount( (cur_quest.Accept_ItemKind, cur_quest.Accept_ItemID, cur_quest.Accept_ItemCount).ToArray());
+                }
+
+                bool Acceptable_Quest = false;
+                if (cur_quest.Accept_QuestID == 0 || m_userquest.UserQuest_State(cur_quest.Accept_QuestID) == E_QuestState.Complete)
+                {
+                    Acceptable_Quest = true;
+                }
+
+                if (Acceptable_Item && Acceptable_Quest)
+                {
+                    return E_QuestState.Acceptable;
+                }
+                else
+                {
+                    return E_QuestState.UnAcceptable;
+                }
+            case E_QuestState.Complete:
+                return E_QuestState.Complete;
+            case E_QuestState.Completable:
+            case E_QuestState.UnCompletable:
+                //완료 가능한지 확인 후 리턴
+                if (await LocalUser_Inven.CheckItemCount((cur_quest.Mission_Kind, cur_quest.Mission_ID, cur_quest.Mission_Count).ToArray()))
                 {
                     return E_QuestState.Completable;
                 }
@@ -183,18 +245,20 @@ public class User_Quest
         throw new Exception("QuestState case is empty : " + state);
     }
 
-    public void Accept(int id)
+    public static async Task<Dictionary<int, User_Quest.Quest>> Accept(int id)
     {
-        E_QuestState state = Get_State(id);
-        if (state == E_QuestState.Acceptable) 
+        await Task.Delay(1);
+        User_Quest m_userquest = UserManager.Load_LocalUD<User_Quest>(User_Quest.Path);
+        E_QuestState state = await Get_State(id);
+        if (state == E_QuestState.Acceptable)
         {
-            if (D_Quest.ContainsKey(id))
+            if (m_userquest.D_Quest.ContainsKey(id))
             {
-                D_Quest[id].State = E_QuestState.UnCompletable;
+                m_userquest.D_Quest[id].State = E_QuestState.UnCompletable;
             }
             else
             {
-                D_Quest.Add(id, new Quest() { State = E_QuestState.UnCompletable });
+                m_userquest.D_Quest.Add(id, new User_Quest.Quest() { State = E_QuestState.UnCompletable });
 
             }
         }
@@ -202,31 +266,38 @@ public class User_Quest
         {
             throw new Exception("State is not Acceptable : id " + id + " ,state " + state);
         }
-        isChanged = true;
+        UserManager.Save_LocalUD(User_Quest.Path, m_userquest);
+        return m_userquest.D_Quest;
+
     }
-    public void Cancel(int[] id)
+    public static async Task<Dictionary<int, User_Quest.Quest>> Cancel(int[] id)
     {
+        await Task.Delay(1);
+        User_Quest m_userquest = UserManager.Load_LocalUD<User_Quest>(User_Quest.Path);
         for (int i = 0; i < id.Length; i++)
         {
-            D_Quest.Remove(id[i]);
+            m_userquest.D_Quest.Remove(id[i]);
         }
-        isChanged = true;
+        UserManager.Save_LocalUD(User_Quest.Path, m_userquest);
+        return m_userquest.D_Quest;
     }
-    public void Complete(int id)
+    public static async Task<Dictionary<int, User_Quest.Quest>> Complete(int id)
     {
-        E_QuestState state = Get_State(id);
+        await Task.Delay(1);
+        User_Quest m_userquest = UserManager.Load_LocalUD<User_Quest>(User_Quest.Path);
+        E_QuestState state = await Get_State(id);
         if (state == E_QuestState.Completable)
         {
-            if (D_Quest.ContainsKey(id))
+            if (m_userquest.D_Quest.ContainsKey(id))
             {
-                D_Quest[id].State = E_QuestState.Complete;
+                m_userquest.D_Quest[id].State = E_QuestState.Complete;
 
                 QuestData cur_quest = QuestData.Get(id);
                 InvenManager.Instance.Add(cur_quest.Reward_Info);
             }
             else
             {
-                D_Quest.Add(id, new Quest() { State = E_QuestState.Complete });
+                m_userquest.D_Quest.Add(id, new User_Quest.Quest() { State = E_QuestState.Complete });
 
             }
         }
@@ -234,15 +305,27 @@ public class User_Quest
         {
             throw new Exception("State is not Completable : id " + id + " ,state " + state);
         }
-        isChanged = true;
+        UserManager.Save_LocalUD(User_Quest.Path, m_userquest);
+        return m_userquest.D_Quest;
     }
-    public void SaveData()
+}
+public static class Ex_Quest
+{
+    public static E_QuestState UserQuest_State(this User_Quest m_userquest, int id)
     {
-        isChanged = false;
-        UserManager.Save_LocalUD(LocalPath, this);
+        if (m_userquest.D_Quest.ContainsKey(id))
+        {
+            return m_userquest.D_Quest[id].State;
+        }
+        else
+        {
+            return E_QuestState.None;
+        }
     }
 
 }
+#endregion
+#region Streaming Quest
 public class J_QuestData
 {
     public const string Path = "Quest";
@@ -341,3 +424,5 @@ public class QuestData
         }
     }
 }
+
+#endregion

@@ -69,31 +69,7 @@ public class GameManager : MonoBehaviour
         UserManager.Reset_Data();
         ac_DataLoaded?.Invoke();
     }
-    void Inven_Log()
-    {
-        Debug.Log("인벤 로그 : ");
-        foreach(var key in InvenManager.Instance.m_UserInven.D_Inven.Keys)
-        {
-            User_Inven.Inven inven = InvenManager.Instance.m_UserInven.D_Inven[key];
-            Debug.Log(key+" "+inven.Kind + " " + inven.Id + " " + inven.Count);
-        }
-    }
-    void Get_Item(int kind, int id, int count)
-    {
-        InvenManager.Instance.Add((kind, id, count));
-    }
-    void Remove_Item(int kind, int id, int count)
-    {
-        if(InvenManager.Instance.AvailablePurchase((kind, id, count)))
-        {
-            Debug.Log("제거 완료");
-            InvenManager.Instance.Remove_bykind((kind, id, count));
-        }
-        else
-        {
-            Debug.Log("제거 못함");
-        }
-    }
+  
 
     #endregion
 }
