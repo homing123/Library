@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.Audio;
 using System.Collections.Generic;
+using System.IO;
 public class SoundManager : Manager<SoundManager>
 {
     [SerializeField] AudioMixer m_AudioMixer;
@@ -19,10 +20,9 @@ public class SoundManager : Manager<SoundManager>
     AudioSource m_SFXSource;
     AudioSource m_EchoSource;
 
-    User_Sound m_UserSound;
-
     private void Awake()
     {
+        User_Sound.m_UserSound = new User_Sound();
         m_BGMSource = gameObject.AddComponent<AudioSource>();
         m_BGMSource.loop = true;
         m_BGMSource.outputAudioMixerGroup = m_AudioMixer.FindMatchingGroups("BGM")[0];
@@ -33,24 +33,15 @@ public class SoundManager : Manager<SoundManager>
         m_EchoSource.loop = false;
         m_EchoSource.outputAudioMixerGroup = m_AudioMixer.FindMatchingGroups("Echo")[0];
 
-        UserManager.Add_Local(User_Sound.LocalPath, Init_UD, () => UserManager.Save_LocalUD(User_Inven.LocalPath, m_UserSound), () => m_UserSound = UserManager.Load_LocalUD<User_Sound>(User_Sound.LocalPath));
         GameManager.ac_DataLoaded += Ac_DataLoaded;
     }
 
     void Ac_DataLoaded()
     {
-        Set_Volume(E_SoundType.BGM, m_UserSound.BGM_Volume);
-        Set_Volume(E_SoundType.SFX, m_UserSound.SFX_Volume);
+        Set_Volume(E_SoundType.BGM, User_Sound.m_UserSound.BGM_Volume);
+        Set_Volume(E_SoundType.SFX, User_Sound.m_UserSound.SFX_Volume);
     }
   
-    void Init_UD()
-    {
-        m_UserSound = new User_Sound()
-        {
-            SFX_Volume = 1,
-            BGM_Volume = 1
-        };
-    }
     public static AudioClip GetButtonClip()
     {
         return null;
@@ -108,12 +99,12 @@ public class SoundManager : Manager<SoundManager>
     {
         float bgm_volume, sfx_volume;
         m_AudioMixer.GetFloat(D_Mixer[E_SoundType.BGM], out bgm_volume);
-        m_UserSound.BGM_Volume = AM_To_User(bgm_volume);
+        User_Sound.m_UserSound.BGM_Volume = AM_To_User(bgm_volume);
 
         m_AudioMixer.GetFloat(D_Mixer[E_SoundType.SFX], out sfx_volume);
-        m_UserSound.SFX_Volume = AM_To_User(sfx_volume);
+        User_Sound.m_UserSound.SFX_Volume = AM_To_User(sfx_volume);
 
-        UserManager.Save_LocalUD(User_Sound.LocalPath, m_UserSound);
+        UserManager.Save_LocalUD(User_Sound.Path, User_Sound.m_UserSound);
     }
 
     #region Test
@@ -130,27 +121,31 @@ public class SoundManager : Manager<SoundManager>
     [ContextMenu("·Î±×")]
     public void Test_Log()
     {
-        Debug.Log("Volume : bgm " + m_UserSound.BGM_Volume + " volume " + m_UserSound.SFX_Volume);
+        Debug.Log("Volume : bgm " + User_Sound.m_UserSound.BGM_Volume + " volume " + User_Sound.m_UserSound.SFX_Volume);
     }
     #endregion
 }
 
-public class User_Sound
+public class User_Sound : UserData_Local
 {
-    static string m_localpath;
-
-    public static string LocalPath
-    {
-        get
-        {
-            if (m_localpath == null)
-            {
-                m_localpath = Application.persistentDataPath + "/Sound.txt";
-            }
-            return m_localpath;
-        }
-    }
+    public const string Path = "Sound";
+    public static User_Sound m_UserSound;
 
     public float SFX_Volume;
     public float BGM_Volume;
+    public override void Load()
+    {
+        if (File.Exists(Path))
+        {
+            var data = UserManager.Load_LocalUD<User_Sound>(Path);
+            SFX_Volume = data.SFX_Volume;
+            BGM_Volume = data.BGM_Volume;
+        }
+        else
+        {
+            SFX_Volume = 1;
+            BGM_Volume = 1;
+            UserManager.Save_LocalUD(Path, this);
+        }
+    }
 }

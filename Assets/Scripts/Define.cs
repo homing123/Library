@@ -18,7 +18,7 @@ public class Math_Define
     static int _Get_RandomResult(float[] per)
     {
         float total_value = 0;
-        for(int i = 0; i < per.Length; i++)
+        for (int i = 0; i < per.Length; i++)
         {
             if (per[i] > 0)
             {
@@ -27,7 +27,7 @@ public class Math_Define
         }
 
         float random_value = UnityEngine.Random.Range(0, total_value);
-        for(int i = 0; i < per.Length; i++)
+        for (int i = 0; i < per.Length; i++)
         {
             random_value -= per[i];
             if (random_value < 0)
@@ -48,7 +48,7 @@ public class Math_Define
 
     public static float Get_TimeValue(float curtime, float maxtime, float startvalue = 0, float endvalue = 1)
     {
-        if(maxtime == 0)
+        if (maxtime == 0)
         {
             return startvalue;
         }
@@ -98,37 +98,35 @@ public class Manager<T> : MonoBehaviour where T : MonoBehaviour
 
 public abstract class UserData
 {
-    public UserData()
-    {
-        UserManager.ac_Init += Init_UD;
-    }
-    public abstract void Init_UD();
-}
 
-public class L_Task
+}
+public abstract class UserData_Server : UserData
 {
-    public List<Task> l_task = new List<Task>();
-    public async Task Invoke()
+    public UserData_Server()
     {
-        for (int i = 0; i < l_task.Count; i++)
+        Debug.Log("UserData_Server 생성자");
+        if (GameManager.LoadindStart == false)
         {
-            l_task[i].Start();
+            Debug.Log("추가됨");
+            UserManager.fc_LoadServer += Load;
         }
-        await Task.WhenAll(l_task);
     }
 
-    public void Add_Task(Task task)
+    public abstract Task Load();
+}
+public abstract class UserData_Local : UserData
+{
+    public UserData_Local()
     {
-        l_task.Add(task);
-    }
-    public void Remove_Task(Task task)
-    {
-        if (task != null)
+        if (GameManager.LoadindStart == false)
         {
-            l_task.Remove(task);
+            UserManager.ac_LoadLocal += Load;
         }
     }
+
+    public abstract void Load();
 }
+
 
 
 public static class Ex_Define
@@ -137,7 +135,7 @@ public static class Ex_Define
     {
         int idx = 0;
         var l_key = new List<int>(dic.Keys);
-        for(int i = 0; i < l_key.Count; i++)
+        for (int i = 0; i < l_key.Count; i++)
         {
             if (l_key.Contains(idx) == true)
             {
@@ -154,5 +152,66 @@ public static class Ex_Define
     {
         return new T[] { value };
     }
+    public static bool IsNullOrEmptyOrN(this string str)
+    {
+        if (string.IsNullOrEmpty(str) || str == "N")
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+    public static void Add<T>(this List<T> list, T[] array)
+    {
+        if (array == null || array.Length == 0)
+        {
+            throw new Exception("Add array to List Error : array is null or array's length is 0");
+        }
+        for (int i = 0; i < array.Length; i++)
+        {
+            list.Add(array[i]);
+        }
+    }
+    public static void Add<T>(this List<T> list, List<T> array)
+    {
+        if (array == null || array.Count == 0)
+        {
+            throw new Exception("Add List to List Error : List is null or List's Count is 0");
+        }
+        for (int i = 0; i < array.Count; i++)
+        {
+            list.Add(array[i]);
+        }
+    }
 
 }
+
+//동기를 병렬비동기로 바꿀때 사용
+public class L_Task
+{
+    public List<Task> l_task = new List<Task>();
+    public async Task Invoke()
+    {
+        for (int i = 0; i < l_task.Count; i++)
+        {
+            l_task[i].Start();
+        }
+        await Task.WhenAll(l_task);
+        Debug.Log("L_Task 완료");
+    }
+
+    public void Add_Task(Task task)
+    {
+        l_task.Add(task);
+    }
+    public void Remove_Task(Task task)
+    {
+        if (task != null)
+        {
+            l_task.Remove(task);
+        }
+    }
+}
+

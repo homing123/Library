@@ -1,7 +1,8 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using System.IO;
+using System.Threading.Tasks;
 public enum E_Language 
 { 
     Eng = 0,
@@ -15,9 +16,11 @@ public class LanguageManager : Manager<LanguageManager>
 
     private void Awake()
     {
-        UserManager.Add_Local(User_Language.LocalPath, Init_UD, () => UserManager.Save_LocalUD(User_Language.LocalPath, m_UserLanguage), () => m_UserLanguage = UserManager.Load_LocalUD<User_Language>(User_Language.LocalPath));
-
-        StreamingManager.Read_Data<J_LanguageData>(StreamingManager.Get_StreamingPath(J_LanguageData.Path), LanguageData.Data_DicSet);
+        User_Language.m_UserLanguage = new User_Language();
+        StreamingManager.LT_StrLoad.Add_Task(new Task(() =>
+        {
+            StreamingManager.Read_Data<J_LanguageData>(StreamingManager.Get_StreamingPath(J_LanguageData.Path), LanguageData.Data_DicSet);
+        }));
     }
 
     public void ChangeLanguage(E_Language e_lang)
@@ -26,21 +29,7 @@ public class LanguageManager : Manager<LanguageManager>
         ev_LanguageChanged?.Invoke(this, e_lang);
     }
   
-    void Init_UD()
-    {
-        Debug.Log("¿Ã¥÷ ∑©±Õ¡ˆ");
-        m_UserLanguage = new User_Language();
-        switch (Application.systemLanguage)
-        {
-            case SystemLanguage.Korean:
-                m_UserLanguage.Language = E_Language.Kor;
-                break;
-            default:
-                m_UserLanguage.Language = E_Language.Eng;
-                break;
-        }
-    }
-
+   
 
     #region Test
 
@@ -57,30 +46,39 @@ public class LanguageManager : Manager<LanguageManager>
     }
     #endregion
 }
-public class User_Language
+public class User_Language : UserData_Local
 {
-    static string m_localpath;
-    public static string LocalPath
-    {
-        get
-        {
-            if (m_localpath == null)
-            {
-                m_localpath = Application.persistentDataPath + "/Language.txt";
-            }
-            return m_localpath;
-        }
-    }
+    public const string Path = "Language";
+    public static User_Language m_UserLanguage;
     public E_Language Language;
 
+  
+
+    public override void Load()
+    {
+        if (File.Exists(Path))
+        {
+            var data = UserManager.Load_LocalUD<User_Language>(Path);
+            Language = data.Language;
+        }
+        else
+        {
+            switch (Application.systemLanguage)
+            {
+                case SystemLanguage.Korean:
+                    Language = E_Language.Kor;
+                    break;
+                default:
+                    Language = E_Language.Eng;
+                    break;
+            }
+            UserManager.Save_LocalUD(Path, this);
+        }
+    }
     public void ChangeLanguage(E_Language language)
     {
         Language = language;
-        SaveData();
-    }
-    void SaveData()
-    {
-        UserManager.Save_LocalUD(LocalPath, this);
+        UserManager.Save_LocalUD(Path, this);
     }
 }
 public class J_LanguageData

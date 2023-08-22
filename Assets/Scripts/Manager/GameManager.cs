@@ -5,6 +5,7 @@ using System;
 public class GameManager : MonoBehaviour
 {
 
+    public static bool LoadindStart = false;
     public static Action ac_DataLoaded;
     public static bool isDataLoaded = false;
     public static GameManager Instance;
@@ -37,23 +38,35 @@ public class GameManager : MonoBehaviour
             yield return seconds;
         }
         //로컬
-        UserManager.Get_LocalData();
+        UserManager.ac_LoadLocal.Invoke();
 
         //스트리밍
+        Debug.Log("스트리밍 부르기");
         bool Streaming_Loaded = false;
         StreamingManager.Load_StreamingData(() => Streaming_Loaded = true);
         while (Streaming_Loaded == false)
         {
             yield return seconds;
         }
+        Debug.Log("스트리밍 부르기 완료");
         //로그인
+
+        //서버데이터
+        LoadindStart = true;
+        bool Serverdata_Loaded = false;
+        UserManager.Load_Server(() => Serverdata_Loaded = true);
+        while(Serverdata_Loaded == false)
+        {
+            yield return seconds;
+        }
+
 
         ac_DataLoaded?.Invoke();
         isDataLoaded = true;
 
         Debug.Log("완료");
 
-        SceneHandler.SceneLoad(SceneHandler.PlayScene);
+        //SceneHandler.SceneLoad(SceneHandler.PlayScene);
     }
 
     // Update is called once per frame
@@ -64,9 +77,11 @@ public class GameManager : MonoBehaviour
 
     #region Test_Function
     [ContextMenu("UD 리셋")]
-    public void UD_Reset()
+    public async void UD_Reset()
     {
-        UserManager.Reset_Data();
+        UserManager.Delete_Local();
+        UserManager.ac_LoadLocal?.Invoke();
+        await UserManager.fc_LoadServer?.Invoke();
         ac_DataLoaded?.Invoke();
     }
   

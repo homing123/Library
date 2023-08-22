@@ -46,5 +46,8 @@
   "Max_Count":[0,0,0],
   "Max_Reward_Kind_0":[0,0,0],
   "Max_Reward_ID_0":[0,0,0],
-  "Max_Reward_Count_0":[0,0,0]
+  "Max_Reward_Count_0":[0,0,0],
+  "First_Reward_Kind_0":[0,0,0],
+  "First_Reward_ID_0":[0,0,0],
+  "First_Reward_Count_0":[0,0,0]
 }

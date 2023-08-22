@@ -1,8 +1,8 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System;
 using System.Threading.Tasks;
+using System.IO;
 public enum E_QuestState
 {
     None = 0, //없는
@@ -17,7 +17,10 @@ public class QuestManager : Manager<QuestManager>
     private void Awake()
     {
         User_Quest.m_UserQuest = new User_Quest();
-        StreamingManager.Read_Data<J_QuestData>(StreamingManager.Get_StreamingPath(J_QuestData.Path), QuestData.Data_DicSet);
+        StreamingManager.LT_StrLoad.Add_Task(new Task(() =>
+        {
+            StreamingManager.Read_Data<J_QuestData>(StreamingManager.Get_StreamingPath(J_QuestData.Path), QuestData.Data_DicSet);
+        }));
     }
   
     public E_QuestState Get_State(int id)
@@ -77,20 +80,36 @@ public class QuestManager : Manager<QuestManager>
     #endregion
 }
 #region UD_Quest
-public class User_Quest : UserData
+public class User_Quest : UserData_Server
 {
     public const string Path = "Quest";
     public static User_Quest m_UserQuest;
-    public static event EventHandler ev_QuestChanged;
+    public static Action ac_QuestChanged;
 
     public Dictionary<int, Quest> D_Quest = new Dictionary<int, Quest>();
     public class Quest 
     {
         public E_QuestState State;
     }
-    public override void Init_UD()
+    public override async Task Load()
     {
-
+        await Task.Delay(1);
+        if (UserManager.Use_Local)
+        {
+            if (File.Exists(Path))
+            {
+                var data = await UserManager.Load_LocalUDAsync<User_Quest>(Path);
+                D_Quest = data.D_Quest;
+            }
+            else
+            {
+                UserManager.Save_LocalUD(Path, this);
+            }
+        }
+        else
+        {
+            //서버에서 있는지없는지 확인 후 없으면 생성해서 보내면 그거 받으면됨
+        }
     }
     public E_QuestState Get_State(int id)
     {
@@ -152,7 +171,7 @@ public class User_Quest : UserData
         if (UserManager.Use_Local)
         {
             m_UserQuest.D_Quest = await LocalUser_Quest.Accept(id);
-            ev_QuestChanged?.Invoke(this, EventArgs.Empty);
+            ac_QuestChanged?.Invoke();
         }
         else
         {
@@ -164,7 +183,7 @@ public class User_Quest : UserData
         if (UserManager.Use_Local)
         {
             m_UserQuest.D_Quest = await LocalUser_Quest.Cancel(id);
-            ev_QuestChanged?.Invoke(this, EventArgs.Empty);
+            ac_QuestChanged?.Invoke();
         }
         else
         {
@@ -175,8 +194,11 @@ public class User_Quest : UserData
     {
         if (UserManager.Use_Local)
         {
-            m_UserQuest.D_Quest = await LocalUser_Quest.Complete(id);
-            ev_QuestChanged?.Invoke(this, EventArgs.Empty);
+            var data = await LocalUser_Quest.Complete(id);
+            m_UserQuest.D_Quest = data.d_quest;
+            User_Inven.m_UserInven.D_Inven = data.d_inven;
+            ac_QuestChanged?.Invoke();
+            User_Inven.ac_InvenChanged?.Invoke();
         }
         else
         {
@@ -281,7 +303,7 @@ public class LocalUser_Quest
         UserManager.Save_LocalUD(User_Quest.Path, m_userquest);
         return m_userquest.D_Quest;
     }
-    public static async Task<Dictionary<int, User_Quest.Quest>> Complete(int id)
+    public static async Task<(Dictionary<int, User_Quest.Quest> d_quest,Dictionary<int,User_Inven.Inven> d_inven)> Complete(int id)
     {
         await Task.Delay(1);
         User_Quest m_userquest = UserManager.Load_LocalUD<User_Quest>(User_Quest.Path);
@@ -291,22 +313,22 @@ public class LocalUser_Quest
             if (m_userquest.D_Quest.ContainsKey(id))
             {
                 m_userquest.D_Quest[id].State = E_QuestState.Complete;
-
-                QuestData cur_quest = QuestData.Get(id);
-                InvenManager.Instance.Add(cur_quest.Reward_Info);
             }
             else
             {
                 m_userquest.D_Quest.Add(id, new User_Quest.Quest() { State = E_QuestState.Complete });
-
             }
+            QuestData cur_quest = QuestData.Get(id);
+            Dictionary<int, User_Inven.Inven> d_inven = await LocalUser_Inven.Add(cur_quest.Reward_Info);
+
+            UserManager.Save_LocalUD(User_Quest.Path, m_userquest);
+            return (m_userquest.D_Quest, d_inven);
         }
         else
         {
             throw new Exception("State is not Completable : id " + id + " ,state " + state);
         }
-        UserManager.Save_LocalUD(User_Quest.Path, m_userquest);
-        return m_userquest.D_Quest;
+      
     }
 }
 public static class Ex_Quest

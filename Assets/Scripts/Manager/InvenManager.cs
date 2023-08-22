@@ -2,14 +2,16 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 using System.Threading.Tasks;
+using System.IO;
 public class InvenManager : Manager<InvenManager>
 {
-    public const int RandomboxKind = 100;
-
     private void Awake()
     {
         User_Inven.m_UserInven = new User_Inven();
-        StreamingManager.Read_Data<J_ItemData>(StreamingManager.Get_StreamingPath(J_ItemData.Path), ItemData.Data_DicSet);
+        StreamingManager.LT_StrLoad.Add_Task(new Task(() =>
+        {
+            StreamingManager.Read_Data<J_ItemData>(StreamingManager.Get_StreamingPath(J_ItemData.Path), ItemData.Data_DicSet);
+        }));
     }
 
     #region Add override
@@ -25,17 +27,17 @@ public class InvenManager : Manager<InvenManager>
     public void Add(int[] kind, int[] id, int[] count)
     {
         var add_info = new (int, int, int)[kind.Length];
-        for(int i = 0; i < add_info.Length; i++)
+        for (int i = 0; i < add_info.Length; i++)
         {
             add_info[i] = (kind[i], id[i], count[i]);
         }
         User_Inven.m_UserInven.Add(add_info);
     }
 
-    
+
     #endregion
     #region Remove override
-    public void Remove_byKind((int kind, int id, int count)[] remove_info )
+    public void Remove_byKind((int kind, int id, int count)[] remove_info)
     {
         User_Inven.m_UserInven.Remove_byKind(remove_info);
     }
@@ -43,7 +45,7 @@ public class InvenManager : Manager<InvenManager>
     {
         User_Inven.m_UserInven.Remove_byKind(remove_info.ToArray());
     }
-    public void Remove_byKey((int key, int count)[] remove_info )
+    public void Remove_byKey((int key, int count)[] remove_info)
     {
         User_Inven.m_UserInven.Remove_byKey(remove_info);
     }
@@ -66,12 +68,12 @@ public class InvenManager : Manager<InvenManager>
     #endregion
 
 
-    public static (int kind,int id,int count)[] ToItemInfo(int[] kind, int[] id, int[] count)
+    public static (int kind, int id, int count)[] ToItemInfo(int[] kind, int[] id, int[] count)
     {
         List<(int, int, int)> l_info = new List<(int, int, int)>();
-        for(int i = 0; i < count.Length; i++)
+        for (int i = 0; i < count.Length; i++)
         {
-            if(count[i] != 0)
+            if (count[i] != 0)
             {
                 l_info.Add((kind[i], id[i], count[i]));
             }
@@ -91,7 +93,7 @@ public class InvenManager : Manager<InvenManager>
     [ContextMenu("제거")]
     public async void Test_Remove()
     {
-        if(CheckItemCount((Test_Kind, Test_ID, Test_Count).ToArray()))
+        if (CheckItemCount((Test_Kind, Test_ID, Test_Count).ToArray()))
         {
             Remove_byKind((Test_Kind, Test_ID, Test_Count).ToArray());
         }
@@ -103,7 +105,7 @@ public class InvenManager : Manager<InvenManager>
     [ContextMenu("로그")]
     public void Test_Log()
     {
-        foreach(int key in User_Inven.m_UserInven.D_Inven.Keys)
+        foreach (int key in User_Inven.m_UserInven.D_Inven.Keys)
         {
             Debug.Log("키 : " + key + " kind : " + User_Inven.m_UserInven.D_Inven[key].Kind + " id : " + User_Inven.m_UserInven.D_Inven[key].Id + " count : " + User_Inven.m_UserInven.D_Inven[key].Count);
         }
@@ -113,13 +115,12 @@ public class InvenManager : Manager<InvenManager>
 }
 #region UD_Inven
 
-public class User_Inven : UserData
+public class User_Inven : UserData_Server
 {
     public const string Path = "Inven";
-   
-    public static User_Inven m_UserInven;
-    public static event EventHandler ev_InvenChanged;
 
+    public static User_Inven m_UserInven;
+    public static Action ac_InvenChanged;
 
     public Dictionary<int, Inven> D_Inven = new Dictionary<int, Inven>();
     //[System.Serializable]
@@ -131,20 +132,45 @@ public class User_Inven : UserData
     }
     public User_Inven()
     {
-        
+        ac_InvenChanged += () =>
+        {
+            Debug.Log("인벤 변경 액션");
+        };
     }
 
-    public override void Init_UD()
+    public override async Task Load()
     {
-        
+        await Task.Delay(1);
+        if (UserManager.Use_Local)
+        {
+            if (File.Exists(Path))
+            {
+                var data = await UserManager.Load_LocalUDAsync<User_Inven>(Path);
+                D_Inven = data.D_Inven;
+            }
+            else
+            {
+                D_Inven.Add(0, new Inven()
+                {
+                    Kind = 1,
+                    Id = 0,
+                    Count = 1000
+                });
+                UserManager.Save_LocalUD(Path, this);
+            }
+        }
+        else
+        {
+            //서버에서 있는지없는지 확인 후 없으면 생성해서 보내면 그거 받으면됨
+        }
     }
-    
+
     public async void Add((int kind, int id, int count)[] add_info)
     {
         if (UserManager.Use_Local)
         {
             m_UserInven.D_Inven = await LocalUser_Inven.Add(add_info);
-            ev_InvenChanged?.Invoke(this, EventArgs.Empty);
+            ac_InvenChanged?.Invoke();
         }
         else
         {
@@ -157,7 +183,7 @@ public class User_Inven : UserData
         if (UserManager.Use_Local)
         {
             m_UserInven.D_Inven = await LocalUser_Inven.Remove_byKind(remove_info);
-            ev_InvenChanged?.Invoke(this, EventArgs.Empty);
+            ac_InvenChanged?.Invoke();
         }
         else
         {
@@ -169,7 +195,7 @@ public class User_Inven : UserData
         if (UserManager.Use_Local)
         {
             m_UserInven.D_Inven = await LocalUser_Inven.Remove_byKey(remove_info);
-            ev_InvenChanged?.Invoke(this, EventArgs.Empty);
+            ac_InvenChanged?.Invoke();
         }
         else
         {
@@ -342,10 +368,10 @@ public class LocalUser_Inven
 
         for (int i = 0; i < remove_info.Length; i++)
         {
-            if (m_userinven.Get(remove_info[i].kind,remove_info[i].id, out keys))
+            if (m_userinven.Get(remove_info[i].kind, remove_info[i].id, out keys))
             {
                 int cur_count = remove_info[i].count;
-                for(int j = 0; j < keys.Length; j++)
+                for (int j = 0; j < keys.Length; j++)
                 {
                     User_Inven.Inven cur_inven = m_userinven.D_Inven[keys[j]];
                     if (cur_inven.Count > cur_count)
@@ -354,7 +380,7 @@ public class LocalUser_Inven
                         cur_count = 0;
                         break;
                     }
-                    else if(cur_inven.Count == cur_count)
+                    else if (cur_inven.Count == cur_count)
                     {
                         m_userinven.D_Inven.Remove(keys[j]);
                         cur_count = 0;
@@ -469,10 +495,11 @@ public class J_ItemData
     public int[] Overlap_Size;
     public int[] Name;
 
-   
+
 }
 public class ItemData
 {
+    public const int RandomboxKind = 100;
     static Dictionary<(int kind, int id), ItemData> D_Data = new Dictionary<(int kind, int id), ItemData>();
 
     public int Kind;
