@@ -120,7 +120,10 @@ public class User_Inven : UserData_Server
     public const string Path = "Inven";
 
     public static User_Inven m_UserInven;
-    public static Action ac_InvenChanged;
+    public static Action ac_InvenChanged = () =>
+    {
+        Debug.Log("InvenChanged Action");
+    };
 
     public Dictionary<int, Inven> D_Inven = new Dictionary<int, Inven>();
     //[System.Serializable]
@@ -130,26 +133,20 @@ public class User_Inven : UserData_Server
         public int Id;
         public int Count;
     }
-    public User_Inven()
-    {
-        ac_InvenChanged += () =>
-        {
-            Debug.Log("인벤 변경 액션");
-        };
-    }
 
     public override async Task Load()
     {
-        await Task.Delay(1);
+        await Task.Delay(GameManager.Instance.TaskDelay);
         if (UserManager.Use_Local)
         {
-            if (File.Exists(Path))
+            if (UserManager.Exist_LocalUD(Path))
             {
                 var data = await UserManager.Load_LocalUDAsync<User_Inven>(Path);
                 D_Inven = data.D_Inven;
             }
             else
             {
+                Debug.Log("Inven_Init");
                 D_Inven.Add(0, new Inven()
                 {
                     Kind = 1,
@@ -232,7 +229,7 @@ public class LocalUser_Inven
 {
     public static async Task<bool> CheckItemCount((int kind, int id, int count)[] item_info)
     {
-        await Task.Delay(1);
+        await Task.Delay(GameManager.Instance.TaskDelay);
         User_Inven m_userinven = UserManager.Load_LocalUD<User_Inven>(User_Inven.Path);
         int[] keys;
         for (int i = 0; i < item_info.Length; i++)
@@ -258,7 +255,7 @@ public class LocalUser_Inven
     }
     public static async Task<Dictionary<int, User_Inven.Inven>> Add((int kind, int id, int count)[] add_info)
     {
-        await Task.Delay(1);
+        await Task.Delay(GameManager.Instance.TaskDelay);
         User_Inven m_userinven = UserManager.Load_LocalUD<User_Inven>(User_Inven.Path);
         User_Inven.Inven inven;
         for (int i = 0; i < add_info.Length; i++)
@@ -332,7 +329,7 @@ public class LocalUser_Inven
 
     public static async Task<Dictionary<int, User_Inven.Inven>> Remove_byKey((int key, int count)[] remove_info)
     {
-        await Task.Delay(1);
+        await Task.Delay(GameManager.Instance.TaskDelay);
         User_Inven m_userinven = UserManager.Load_LocalUD<User_Inven>(User_Inven.Path);
         User_Inven.Inven inven;
         for (int i = 0; i < remove_info.Length; i++)
@@ -362,7 +359,7 @@ public class LocalUser_Inven
     }
     public static async Task<Dictionary<int, User_Inven.Inven>> Remove_byKind((int kind, int id, int count)[] remove_info)
     {
-        await Task.Delay(1);
+        await Task.Delay(GameManager.Instance.TaskDelay);
         User_Inven m_userinven = UserManager.Load_LocalUD<User_Inven>(User_Inven.Path);
         int[] keys;
 

@@ -22,25 +22,42 @@ public class UserManager
         File.Delete(Path.Combine(Application.persistentDataPath, User_Time.Path));
         File.Delete(Path.Combine(Application.persistentDataPath, User_Sound.Path));
         File.Delete(Path.Combine(Application.persistentDataPath, User_Language.Path));
+        File.Delete(Path.Combine(Application.persistentDataPath, User_Randombox.Path));
     }
 
-    public static T Load_LocalUD<T>(string localpath)
+    public static bool Exist_LocalUD(string path)
     {
-        localpath = Path.Combine(Application.persistentDataPath, localpath);
-        string data = File.ReadAllText(localpath);
+        path = Path.Combine(Application.persistentDataPath, path);
+        return File.Exists(path);
+    }
+    public static T Load_LocalUD<T>(string path)
+    {
+        bool log = false;
+        if (path == "Time")
+        {
+            log = true;
+        }
+        path = Path.Combine(Application.persistentDataPath, path);
+        string data = File.ReadAllText(path);
+        if (log)
+        {
+            Debug.Log(data);
+        }
         return JsonConvert.DeserializeObject<T>(data);
     }
-    public static async Task<T> Load_LocalUDAsync<T>(string localpath)
+    public static async Task<T> Load_LocalUDAsync<T>(string path)
     {
-        await Task.Delay(1);
-        localpath = Path.Combine(Application.persistentDataPath, localpath);
-        string data = File.ReadAllText(localpath);
+        await Task.Delay(GameManager.Instance.TaskDelay);
+        path = Path.Combine(Application.persistentDataPath, path);
+        string data = File.ReadAllText(path);
         return JsonConvert.DeserializeObject<T>(data);
     }
-    public static void Save_LocalUD(string localpath, object obj)
+    public static void Save_LocalUD(string path, object obj)
     {
-        localpath = Path.Combine(Application.persistentDataPath, localpath);
-        File.WriteAllText(localpath, JsonConvert.SerializeObject(obj));
+        path = Path.Combine(Application.persistentDataPath, path);
+        Debug.Log("¿˙¿Â : " + path);
+
+        File.WriteAllText(path, JsonConvert.SerializeObject(obj));
     }
 
 }

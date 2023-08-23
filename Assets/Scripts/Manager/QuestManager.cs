@@ -84,7 +84,10 @@ public class User_Quest : UserData_Server
 {
     public const string Path = "Quest";
     public static User_Quest m_UserQuest;
-    public static Action ac_QuestChanged;
+    public static Action ac_QuestChanged = () =>
+    {
+        Debug.Log("QuestChanged Action");
+    };
 
     public Dictionary<int, Quest> D_Quest = new Dictionary<int, Quest>();
     public class Quest 
@@ -93,16 +96,18 @@ public class User_Quest : UserData_Server
     }
     public override async Task Load()
     {
-        await Task.Delay(1);
+        await Task.Delay(GameManager.Instance.TaskDelay);
         if (UserManager.Use_Local)
         {
-            if (File.Exists(Path))
+            if (UserManager.Exist_LocalUD(Path))
             {
                 var data = await UserManager.Load_LocalUDAsync<User_Quest>(Path);
                 D_Quest = data.D_Quest;
             }
             else
             {
+                Debug.Log("Quest_Init");
+
                 UserManager.Save_LocalUD(Path, this);
             }
         }
@@ -211,7 +216,7 @@ public class LocalUser_Quest
 {
     static async  Task<E_QuestState> Get_State(int id)
     {
-        await Task.Delay(1);
+        await Task.Delay(GameManager.Instance.TaskDelay);
         User_Quest m_userquest = UserManager.Load_LocalUD<User_Quest>(User_Quest.Path);
         QuestData cur_quest = QuestData.Get(id);
         if (cur_quest == null)
@@ -269,7 +274,7 @@ public class LocalUser_Quest
 
     public static async Task<Dictionary<int, User_Quest.Quest>> Accept(int id)
     {
-        await Task.Delay(1);
+        await Task.Delay(GameManager.Instance.TaskDelay);
         User_Quest m_userquest = UserManager.Load_LocalUD<User_Quest>(User_Quest.Path);
         E_QuestState state = await Get_State(id);
         if (state == E_QuestState.Acceptable)
@@ -294,7 +299,7 @@ public class LocalUser_Quest
     }
     public static async Task<Dictionary<int, User_Quest.Quest>> Cancel(int[] id)
     {
-        await Task.Delay(1);
+        await Task.Delay(GameManager.Instance.TaskDelay);
         User_Quest m_userquest = UserManager.Load_LocalUD<User_Quest>(User_Quest.Path);
         for (int i = 0; i < id.Length; i++)
         {
@@ -305,7 +310,7 @@ public class LocalUser_Quest
     }
     public static async Task<(Dictionary<int, User_Quest.Quest> d_quest,Dictionary<int,User_Inven.Inven> d_inven)> Complete(int id)
     {
-        await Task.Delay(1);
+        await Task.Delay(GameManager.Instance.TaskDelay);
         User_Quest m_userquest = UserManager.Load_LocalUD<User_Quest>(User_Quest.Path);
         E_QuestState state = await Get_State(id);
         if (state == E_QuestState.Completable)

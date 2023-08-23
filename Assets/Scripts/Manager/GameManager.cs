@@ -2,11 +2,20 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using System.Threading.Tasks;
 public class GameManager : MonoBehaviour
 {
 
+    [SerializeField] public int TaskDelay;
     public static bool LoadindStart = false;
-    public static Action ac_DataLoaded;
+    public static Action ac_DataLoaded = () =>
+    {
+        Debug.Log("DataLoaded Action");
+    };
+    public static Func<Task> fc_DataLoadedAsync = ()=>
+    {
+        return new Task(()=> Debug.Log("DataLoadedAsync Func"));
+    };
     public static bool isDataLoaded = false;
     public static GameManager Instance;
     WaitForSecondsRealtime seconds = new WaitForSecondsRealtime(0.1f);
@@ -62,7 +71,15 @@ public class GameManager : MonoBehaviour
 
 
         ac_DataLoaded?.Invoke();
-        isDataLoaded = true;
+        fc_DataLoadedAsync.Fc_Async(() =>
+        {
+            isDataLoaded = true;
+        });
+
+        while (isDataLoaded == false)
+        {
+            yield return seconds;
+        }
 
         Debug.Log("완료");
 
@@ -83,8 +100,14 @@ public class GameManager : MonoBehaviour
         UserManager.ac_LoadLocal?.Invoke();
         await UserManager.fc_LoadServer?.Invoke();
         ac_DataLoaded?.Invoke();
+        await fc_DataLoadedAsync?.Invoke();
     }
-  
+    [ContextMenu("UD 삭제")]
+    public void UD_Delete()
+    {
+        UserManager.Delete_Local();
+    }
+
 
     #endregion
 }

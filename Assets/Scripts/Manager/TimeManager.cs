@@ -40,7 +40,7 @@ public class TimeManager : Manager<TimeManager>
     private void Awake()
     {
         User_Time.m_UserTime = new User_Time();
-        GameManager.ac_DataLoaded += Access_Reset_Check;
+        GameManager.fc_DataLoadedAsync += Access_Reset_Check;
         InputManager.ev_ApplicationPause += Ev_ApplicationPause;
     }
     float update_time;
@@ -77,8 +77,9 @@ public class TimeManager : Manager<TimeManager>
             StartCoroutine(Get_CurTime());
         }
     }
-    public async void Access_Reset_Check()
+    public async Task Access_Reset_Check()
     {
+        Debug.Log("竣技胶 府悸 眉农");
         var data = await User_Time.m_UserTime.Access_Reset(Cur_Time);
         if(data.day_count == -1)
         {
@@ -125,16 +126,18 @@ public class User_Time : UserData_Server
 
     public override async Task Load()
     {
-        await Task.Delay(1);
+        await Task.Delay(GameManager.Instance.TaskDelay);
         if (UserManager.Use_Local)
         {
-            if (File.Exists(Path))
+            if (UserManager.Exist_LocalUD(Path))
             {
                 var data = await UserManager.Load_LocalUDAsync<User_Time>(Path);
                 Access_Time = data.Access_Time;
             }
             else
             {
+                Debug.Log("Time_Init");
+
                 UserManager.Save_LocalUD(Path, this);
             }
         }
@@ -162,7 +165,7 @@ public class LocalUser_Time
 {
     public static async Task<(DateTime access_time, int month_count, int week_count, int day_count)> Access_Reset(DateTime Cur_Time)
     {
-        await Task.Delay(1);
+        await Task.Delay(GameManager.Instance.TaskDelay);
         User_Time m_usertime = UserManager.Load_LocalUD<User_Time>(User_Time.Path);
 
         DateTime cur_time = Cur_Time;
@@ -180,6 +183,7 @@ public class LocalUser_Time
             //霉 立加
             m_usertime.Set_AccessTime(Cur_Time.Get_TodayResetTime());
             Debug.Log("霉立加");
+            Debug.Log(m_usertime.Access_Time);
             day_count = -1;
         }
         else

@@ -41,22 +41,24 @@ public class User_Randombox : UserData_Server
 {
     public const string Path = "Randombox";
     public static User_Randombox m_UserRandombox;
-    public static Action ac_RandomboxChanged;
+    public static Action ac_RandomboxChanged = () => { Debug.Log("RandomboxChanged Action"); };
 
     public Dictionary<int, int> D_Randombox = new Dictionary<int, int>();
 
     public override async Task Load()
     {
-        await Task.Delay(1);
+        await Task.Delay(GameManager.Instance.TaskDelay);
         if (UserManager.Use_Local)
         {
-            if (File.Exists(Path))
+            if (UserManager.Exist_LocalUD(Path))
             {
                 var data = await UserManager.Load_LocalUDAsync<User_Randombox>(Path);
                 D_Randombox = data.D_Randombox;
             }
             else
             {
+                Debug.Log("Randombox_Init");
+
                 UserManager.Save_LocalUD(Path, this);
             }
         }
@@ -102,7 +104,7 @@ public class LocalUser_Randombox
     /// <returns></returns>
     public static async Task<((int kind, int id, int count)[] item_info, Dictionary<int,int> d_randombox)> Gacha_byBuy(int id, int count)
     {
-        await Task.Delay(1);
+        await Task.Delay(GameManager.Instance.TaskDelay);
         User_Randombox m_userrandombox = UserManager.Load_LocalUD<User_Randombox>(User_Randombox.Path);
 
         List<(int kind, int id, int count)> l_iteminfo = new List<(int kind, int id, int count)>();
@@ -142,7 +144,7 @@ public class LocalUser_Randombox
     /// <returns></returns>
     public static async Task<(Dictionary<int ,User_Inven.Inven> d_inven, Dictionary<int,int> d_randombox)> Gacha_byInven(int inven_key, int count)
     {
-        await Task.Delay(1);
+        await Task.Delay(GameManager.Instance.TaskDelay);
 
         User_Randombox m_userrandombox = UserManager.Load_LocalUD<User_Randombox>(User_Randombox.Path);
         User_Inven m_userinven = UserManager.Load_LocalUD<User_Inven>(User_Inven.Path);
@@ -202,7 +204,7 @@ public static class Ex_Randombox
         {
             l_iteminfo.Add(cur_box.First_Reward_Info);
         }
-        else if (user_Randombox.isMax(id, cur_box.Max_Count))
+        else if (cur_box.Max_Count > 0 && user_Randombox.isMax(id, cur_box.Max_Count))
         {
             l_iteminfo.Add(cur_box.Max_Reward_Info);
         }
@@ -360,7 +362,7 @@ public class RandomBoxData
         var random_info = new List<(int kind, int id, int count, float per)>();
         List<(int kind, int id, int count)> l_none_per = new List<(int, int, int)>(); //확률 없는 상품
         List<(int kind, int id, int count, float per)> l_per = new List<(int, int, int, float)>(); //확률 있는 상품
-        if(cur_box.Range_Kind != 0 && cur_box.Range_Max != 0 && cur_box.Range_Min != 0)
+        if(cur_box.Range_Kind != 0)
         {
             ItemData cur_item;
             for(int i = cur_box.Range_Min; i <= cur_box.Range_Max; i++)
@@ -445,7 +447,7 @@ public class RandomBoxData
             }
         }
         cur_box.Random_Info = random_info.ToArray();
-        Debug.Log("랜덤인포 세팅 : " + cur_box.ID+" "+ random_info.Count);
+        //Debug.Log("랜덤인포 세팅 : " + cur_box.ID+" "+ random_info.Count);
 
     }
     public (int kind, int id, int count) Gacha()

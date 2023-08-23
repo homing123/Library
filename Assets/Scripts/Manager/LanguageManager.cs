@@ -11,7 +11,6 @@ public enum E_Language
 
 public class LanguageManager : Manager<LanguageManager>
 {
-    public User_Language m_UserLanguage;
     public static event EventHandler<E_Language> ev_LanguageChanged;
 
     private void Awake()
@@ -25,7 +24,7 @@ public class LanguageManager : Manager<LanguageManager>
 
     public void ChangeLanguage(E_Language e_lang)
     {
-        m_UserLanguage.ChangeLanguage(e_lang);
+        User_Language.m_UserLanguage.ChangeLanguage(e_lang);
         ev_LanguageChanged?.Invoke(this, e_lang);
     }
   
@@ -42,7 +41,7 @@ public class LanguageManager : Manager<LanguageManager>
     [ContextMenu("로그")]
     public void Test_Log()
     {
-        Debug.Log("현재 언어 : " + m_UserLanguage.Language);
+        Debug.Log("현재 언어 : " + User_Language.m_UserLanguage.Language);
     }
     #endregion
 }
@@ -56,13 +55,15 @@ public class User_Language : UserData_Local
 
     public override void Load()
     {
-        if (File.Exists(Path))
+        if (UserManager.Exist_LocalUD(Path))
         {
             var data = UserManager.Load_LocalUD<User_Language>(Path);
             Language = data.Language;
         }
         else
         {
+            Debug.Log("Language_Init");
+
             switch (Application.systemLanguage)
             {
                 case SystemLanguage.Korean:
@@ -121,9 +122,9 @@ public class LanguageData
     }
     public static string Get(int key)
     {
-        if (D_Data[LanguageManager.Instance.m_UserLanguage.Language].ContainsKey(key))
+        if (D_Data[User_Language.m_UserLanguage.Language].ContainsKey(key))
         {
-            return D_Data[LanguageManager.Instance.m_UserLanguage.Language][key].Text;
+            return D_Data[User_Language.m_UserLanguage.Language][key].Text;
         }
         else
         {

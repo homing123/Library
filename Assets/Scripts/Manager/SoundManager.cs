@@ -135,7 +135,7 @@ public class User_Sound : UserData_Local
     public float BGM_Volume;
     public override void Load()
     {
-        if (File.Exists(Path))
+        if (UserManager.Exist_LocalUD(Path))
         {
             var data = UserManager.Load_LocalUD<User_Sound>(Path);
             SFX_Volume = data.SFX_Volume;
@@ -143,6 +143,8 @@ public class User_Sound : UserData_Local
         }
         else
         {
+            Debug.Log("Sound_Init");
+
             SFX_Volume = 1;
             BGM_Volume = 1;
             UserManager.Save_LocalUD(Path, this);

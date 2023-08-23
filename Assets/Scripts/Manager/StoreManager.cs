@@ -68,7 +68,7 @@ public class User_Store : UserData_Server
 
     public List<Record> L_Purchase_Record = new List<Record>();
     public Dictionary<int, StoreLock> D_StoreLock = new Dictionary<int, StoreLock>();
-    public static Action ac_StoreChanged;
+    public static Action ac_StoreChanged = () => { Debug.Log("StoreChanged Action"); };
     public class Record
     {
         public string Time;
@@ -78,19 +78,12 @@ public class User_Store : UserData_Server
     {
         public string Time;
     }
-    public User_Store()
-    {
-        ac_StoreChanged += () =>
-        {
-            Debug.Log("스토어 변경 액션");
-        };
-    }
     public override async Task Load()
     {
-        await Task.Delay(1);
+        await Task.Delay(GameManager.Instance.TaskDelay);
         if (UserManager.Use_Local)
         {
-            if (File.Exists(Path))
+            if (UserManager.Exist_LocalUD(Path))
             {
                 var data = await UserManager.Load_LocalUDAsync<User_Store>(Path);
                 L_Purchase_Record = data.L_Purchase_Record;
@@ -98,6 +91,8 @@ public class User_Store : UserData_Server
             }
             else
             {
+                Debug.Log("Store_Init");
+
                 UserManager.Save_LocalUD(Path, this);
             }
         }
@@ -146,7 +141,8 @@ public class LocalUser_Store
 {
     public static async Task<(Dictionary<int, User_Store.StoreLock> D_StoreLock, List<User_Store.Record> L_Purchase_Record, Dictionary<int,User_Inven.Inven> D_Inven, Dictionary<int,int> D_Randombox)> Buy(int id, int count = 1)
     {
-        await Task.Delay(1);
+        Debug.Log("구매");
+        await Task.Delay(GameManager.Instance.TaskDelay);
         User_Store m_userstore = UserManager.Load_LocalUD<User_Store>(User_Store.Path);
         StoreData cur_store = StoreData.Get(id);
 
@@ -155,6 +151,27 @@ public class LocalUser_Store
 
         if (await LocalUser_Inven.CheckItemCount(price_info))
         {
+            if (cur_store.Lock_Time != 0)
+            {
+                if (m_userstore.isLock(id))
+                {
+                    throw new Exception("This Product has TimeLock ID : " + id + " TimeLock : " + m_userstore.D_StoreLock[id].Time + " Cur Time : " + TimeManager.Instance.Cur_Time.ToString());
+                }
+                else
+                {
+                    m_userstore.AddLockTime(id, TimeManager.Instance.Cur_Time.AddSeconds(cur_store.Lock_Time));
+                }
+            }
+            if (cur_store.Purchase.IsNullOrEmptyOrN())
+            {
+                m_userstore.L_Purchase_Record.Add(new User_Store.Record()
+                {
+                    Time = TimeManager.Instance.Cur_Time.ToString(),
+                    ID = id
+                });
+            }
+
+
             //가격 지불
             await LocalUser_Inven.Remove_byKind(price_info);
 
@@ -188,26 +205,6 @@ public class LocalUser_Store
 
             Debug.Log("구매 완료");
 
-            if (cur_store.Lock_Time != 0)
-            {
-                if (m_userstore.isLock(id))
-                {
-                    throw new Exception("This Product has TimeLock ID : " + id + " TimeLock : " + m_userstore.D_StoreLock[id].Time + " Cur Time : " + TimeManager.Instance.Cur_Time.ToString());
-                }
-                else
-                {
-                    m_userstore.D_StoreLock.Add(id, new User_Store.StoreLock() { Time = TimeManager.Instance.Cur_Time.AddSeconds(cur_store.Lock_Time).ToString() });
-                }
-            }
-            if (cur_store.Purchase.IsNullOrEmptyOrN())
-            {
-                m_userstore.L_Purchase_Record.Add(new User_Store.Record()
-                {
-                    Time = TimeManager.Instance.Cur_Time.ToString(),
-                    ID = id
-                });
-            }
-
             UserManager.Save_LocalUD(User_Store.Path, m_userstore);
             Debug.Log("구매 처리 끝");
             return (m_userstore.D_StoreLock, m_userstore.L_Purchase_Record, d_inven, d_randombox);
@@ -220,7 +217,7 @@ public class LocalUser_Store
 
     public static async Task<Dictionary<int, User_Inven.Inven>> Buy((int kind, int id, int count) price_info)
     {
-        await Task.Delay(1);
+        await Task.Delay(GameManager.Instance.TaskDelay);
         if (await LocalUser_Inven.CheckItemCount(price_info.ToArray()))
         {
             //가격지불
@@ -241,16 +238,27 @@ public static class Ex_Store
         {
             if (DateTime.Parse(m_userstore.D_StoreLock[id].Time).CompareTo(TimeManager.Instance.Cur_Time) > 0) // a.compareto(b) => 0보다작으면 a보다 b가이전, 0은 a==b, 0보다 크면 a보다 b가 후
             {
-                return false;
+                return true;
             }
             else
             {
-                return true;
+                return false;
             }
         }
         else
         {
             return false;
+        }
+    }
+    public static void AddLockTime(this User_Store m_userstore, int id, DateTime datetime)
+    {
+        if (m_userstore.D_StoreLock.ContainsKey(id))
+        {
+            m_userstore.D_StoreLock[id].Time = datetime.ToString();
+        }
+        else
+        {
+            m_userstore.D_StoreLock.Add(id, new User_Store.StoreLock() { Time = datetime.ToString() });
         }
     }
 }
@@ -296,7 +304,6 @@ public class StoreData
 
     public static void Data_DicSet(J_StoreData j_obj)
     {
-        Debug.Log("스토어 데이터 세팅");
         for (int i = 0; i < j_obj.ID.Length; i++)
         {
             StoreData obj = new StoreData()

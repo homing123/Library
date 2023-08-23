@@ -104,10 +104,8 @@ public abstract class UserData_Server : UserData
 {
     public UserData_Server()
     {
-        Debug.Log("UserData_Server 생성자");
         if (GameManager.LoadindStart == false)
         {
-            Debug.Log("추가됨");
             UserManager.fc_LoadServer += Load;
         }
     }
@@ -186,6 +184,11 @@ public static class Ex_Define
         }
     }
 
+    public static async void Fc_Async(this Func<Task> func, Action ac_complete)
+    {
+        await func?.Invoke();
+        ac_complete?.Invoke();
+    }
 }
 
 //동기를 병렬비동기로 바꿀때 사용
@@ -199,7 +202,6 @@ public class L_Task
             l_task[i].Start();
         }
         await Task.WhenAll(l_task);
-        Debug.Log("L_Task 완료");
     }
 
     public void Add_Task(Task task)
