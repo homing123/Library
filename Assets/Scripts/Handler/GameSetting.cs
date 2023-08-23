@@ -1,4 +1,5 @@
 using UnityEngine;
+using static AdManager;
 
 public class GameSetting : MonoBehaviour
 {
@@ -7,7 +8,18 @@ public class GameSetting : MonoBehaviour
     [SerializeField] string m_Version;
     [SerializeField] bool m_Cheat;
     [SerializeField] bool m_Ad;
-
+    [SerializeField] E_AdSdk m_AdSdk;
+    public static E_AdSdk AdSdk
+    {
+        get
+        {
+            if (Instance == null)
+            {
+                Instance = FindObjectOfType<GameSetting>();
+            }
+            return Instance.m_AdSdk;
+        }
+    }
     public static string Version
     {
         get
@@ -43,5 +55,6 @@ public class GameSetting : MonoBehaviour
             return Instance.m_Ad;
         }
     }
+
 
 }
