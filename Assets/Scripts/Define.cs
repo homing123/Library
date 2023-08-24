@@ -95,7 +95,16 @@ public class Manager<T> : MonoBehaviour where T : MonoBehaviour
         }
     }
 }
-
+public abstract class PlayManager : MonoBehaviour
+{
+    public PlayManager()
+    {
+        Instance = this;
+    }
+    public static PlayManager Instance;
+    public abstract void WaitStart();
+    public abstract void GameRestart();
+}
 public abstract class UserData
 {
 

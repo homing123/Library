@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.UI;
-[AddComponentMenu("Audio Source")]
 public class ButtonEx : Button
 {
     // ui 사운드는 카메라 오디오소스에 출력
@@ -19,6 +18,6 @@ public class ButtonEx : Button
 
     void AudioPlay()
     {
-        SoundManager.Instance.Play_Sound(m_AudioClip);
+        //SoundManager.Instance.Play_Sound(m_AudioClip);
     }
 }

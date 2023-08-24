@@ -3,77 +3,178 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 
-public class RhythmSceneManager : MonoBehaviour
+public class RhythmSceneManager : PlayManager
 {
-    public static RhythmSceneManager Instance;
     public static event EventHandler ev_GameStart;
+    bool isPlaying;
     public static event EventHandler ev_GameEnd;
     [SerializeField] GameObject pre_bar;
+    [SerializeField] Transform Bar_Parent;
+    float cur_time;
 
-    [SerializeField] GameObject Pre_TestCube;
-    List<GameObject> L_Cube = new List<GameObject>();
+    float m_interval = 1;
+    float m_range = 0;
+    [SerializeField] float m_speed = 5;
+    float play_time;
+
+    [SerializeField] GameObject pre_Start;
+    [SerializeField] GameObject pre_End;
+
+    List<GameObject> L_Bar = new List<GameObject>();
+
+    float cur_interval;
+    float[] Count_Per = new float[3] { 100, 0, 0 };
+
     private void Awake()
     {
-        Instance = this;
+        Application.targetFrameRate = 60;
     }
-    int[] value = new int[200];
+
     private void Start()
     {
-        System.Random rnd = new System.Random();
-        float m = 0;
-        for (int i = 0; i < 10000; i++)
-        {
-            double v1, v2, s;
-            do
-            {
-                v1 = rnd.Next(-500000, 500001) / 500000.0;
-                v2 = rnd.Next(-500000, 500001) / 500000.0;
-                s = v1 * v1 + v2 * v2;
-            }
-            while (s >= 1 || s == 0);
-            s = Math.Sqrt((-2.0 * Math.Log(s)) / s);
-            int rand_value = (int)((s + 100));
-            if (rand_value < 200 && rand_value >= 0) 
-            {
-                value[rand_value]++;
-            }
-            else
-            {
-                Debug.Log(rand_value);
-            }
-        }
-        //for(int i = 0; i < 100000; i++)
-        //{
-        //    value[(int)(UnityEngine.Random.insideUnitCircle.x * 100 + 100)]++;
-        //}
-        for(int i = 0; i < 200; i++)
-        {
-            L_Cube.Add(Instantiate(Pre_TestCube, new Vector3(i, value[i], 0), Quaternion.identity));
-        }
-
+        Instantiate(pre_Start);
+    }
+    public override void WaitStart()
+    {
         StartCoroutine(Wait());
+    }
+    public override void GameRestart()
+    {
+        for(int i = 0; i < L_Bar.Count; i++)
+        {
+            Destroy(L_Bar[i].gameObject);
+        }
+        L_Bar.Clear();
+        Bar_Parent.transform.position = Vector3.zero;
+        WaitStart();
+    }
+    float Random_Custom(float min, float max)
+    {
+        float x = UnityEngine.Random.Range(0f, 2);
+        float y = Mathf.Pow((x - 1), 3) + 1;
+
+        return min + (y * (max - min) * 0.5f);
     }
     private void Update()
     {
+        if (isPlaying)
+        {
+            play_time += Time.deltaTime;
+            cur_time += Time.deltaTime;
+            Check_PlayTime();
+            StartCoroutine(Create_Bar());
+            Move_Bar();
+        }
 
-            
+
+    }
+    void Check_PlayTime()
+    {
+        if(play_time < 30)
+        {
+            float value = play_time * 0.0025f;
+            m_interval = 0.45f - value;
+            m_range = value;
+        }
+        else
+        {
+            m_interval = 0.375f;
+            m_range = 0.075f;
+        }
+        Count_Per[0] = Mathf.Max(0, 100 - play_time);
+        Count_Per[1] = play_time * 10;
+    }
+    IEnumerator Create_Bar()
+    {
+
+        if (cur_time >= cur_interval)
+        {
+            cur_time -= cur_interval;
+            cur_interval = Random_Custom(m_interval - m_range * 0.5f, m_interval + m_range * 0.5f);
+            int count = Math_Define.Get_RandomResult(Count_Per) + 1;
+
+            for (int i = 0; i < count; i++)
+            {
+                Instantiate(pre_bar, new Vector3(0, 6, 0), Quaternion.identity, Bar_Parent);
+                yield return new WaitForSeconds(0.05f);
+            }
+        }
+
+       
+       
+    }
+    void Move_Bar()
+    {
+        Bar_Parent.transform.position -= new Vector3(0, Time.deltaTime * m_speed, 0);
+        for (int i = 0; i < Bar_Parent.childCount; i++)
+        {
+            if (Bar_Parent.GetChild(i).transform.position.y < -4)
+            {
+                StartCoroutine(End());
+            }
+        }
     }
     IEnumerator Wait()
     {
+        isPlaying = false;
         yield return new WaitForSeconds(3);
         GameStart();
     }
     void GameStart()
     {
+        cur_interval = m_interval;
+        isPlaying = true;
+        cur_time = 0;
+        play_time = 0;
         Debug.Log("GameStart");
         ev_GameStart?.Invoke(this, EventArgs.Empty);
+        InputManager.ev_MouseDown += Input;
     }
-
+    [SerializeField] Transform m_Zone;
+    void Input(object sender, int key)
+    {
+        if (key == 0)
+        {
+            float min_zone = m_Zone.transform.position.y - 0.5f;
+            float max_zone = m_Zone.transform.position.y + 0.5f;
+            GameObject down_bar = null;
+            for (int i = 0; i < L_Bar.Count; i++)
+            {
+                if (down_bar == null)
+                {
+                    down_bar = L_Bar[i];
+                }
+                else
+                {
+                    if (L_Bar[i].transform.position.y < down_bar.transform.position.y)
+                    {
+                        down_bar = L_Bar[i];
+                    }
+                }
+            }
+            if (down_bar == null )
+            {
+                StartCoroutine(End());
+            }
+            else if(down_bar.transform.position.y < max_zone && down_bar.transform.position.y > min_zone)
+            {
+                Destroy(down_bar.gameObject);
+                L_Bar.Remove(down_bar);
+            }
+            else
+            {
+                StartCoroutine(End());
+            }
+            
+        }
+    }
     IEnumerator End()
     {
+        isPlaying = false;
         ev_GameEnd?.Invoke(this, EventArgs.Empty);
         Debug.Log("End");
-
+        Instantiate(pre_End);
+        InputManager.ev_MouseDown -= Input;
         yield return null;
     }
 }
