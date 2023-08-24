@@ -75,14 +75,25 @@ public class RhythmSceneManager : PlayManager
             float value = play_time * 0.0025f;
             m_interval = 0.45f - value;
             m_range = value;
+            m_speed = 7 + play_time / 30;
         }
         else
         {
+            m_speed = 8;
             m_interval = 0.375f;
             m_range = 0.075f;
         }
-        Count_Per[0] = Mathf.Max(0, 100 - play_time);
-        Count_Per[1] = play_time * 10;
+        if (play_time < 20)
+        {
+            Count_Per[0] = Mathf.Max(0, 100 - play_time);
+            Count_Per[1] = play_time * 10;
+        }
+        else
+        {
+            Count_Per[0] = 0;
+            Count_Per[1] = play_time * 10;
+            Count_Per[2] = play_time * 15;
+        }
     }
     IEnumerator Create_Bar()
     {
@@ -95,8 +106,8 @@ public class RhythmSceneManager : PlayManager
 
             for (int i = 0; i < count; i++)
             {
-                Instantiate(pre_bar, new Vector3(0, 6, 0), Quaternion.identity, Bar_Parent);
-                yield return new WaitForSeconds(0.05f);
+                L_Bar.Add(Instantiate(pre_bar, new Vector3(0, 6, 0), Quaternion.identity, Bar_Parent));
+                yield return new WaitForSeconds(0.08f);
             }
         }
 
@@ -135,8 +146,8 @@ public class RhythmSceneManager : PlayManager
     {
         if (key == 0)
         {
-            float min_zone = m_Zone.transform.position.y - 0.5f;
-            float max_zone = m_Zone.transform.position.y + 0.5f;
+            float min_zone = m_Zone.transform.position.y - m_Zone.transform.localScale.y * 0.5f;
+            float max_zone = m_Zone.transform.position.y + m_Zone.transform.localScale.y * 0.5f;
             GameObject down_bar = null;
             for (int i = 0; i < L_Bar.Count; i++)
             {
