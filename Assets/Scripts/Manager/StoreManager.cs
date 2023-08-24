@@ -151,22 +151,23 @@ public class LocalUser_Store
 
         if (await LocalUser_Inven.CheckItemCount(price_info))
         {
+            DateTime cur_time = await TimeManager.Instance.Cur_TimeAsync();
             if (cur_store.Lock_Time != 0)
             {
-                if (m_userstore.isLock(id))
+                if (m_userstore.isLock(id, cur_time))
                 {
-                    throw new Exception("This Product has TimeLock ID : " + id + " TimeLock : " + m_userstore.D_StoreLock[id].Time + " Cur Time : " + TimeManager.Instance.Cur_Time.ToString());
+                    throw new Exception("This Product has TimeLock ID : " + id + " TimeLock : " + m_userstore.D_StoreLock[id].Time + " Cur Time : " + cur_time.ToString());
                 }
                 else
                 {
-                    m_userstore.AddLockTime(id, TimeManager.Instance.Cur_Time.AddSeconds(cur_store.Lock_Time));
+                    m_userstore.AddLockTime(id, cur_time.AddSeconds(cur_store.Lock_Time));
                 }
             }
             if (cur_store.Purchase.IsNullOrEmptyOrN())
             {
                 m_userstore.L_Purchase_Record.Add(new User_Store.Record()
                 {
-                    Time = TimeManager.Instance.Cur_Time.ToString(),
+                    Time = cur_time.ToString(),
                     ID = id
                 });
             }
@@ -232,11 +233,11 @@ public class LocalUser_Store
 }
 public static class Ex_Store 
 {
-    public static bool isLock(this User_Store m_userstore, int id)
+    public static bool isLock(this User_Store m_userstore, int id, DateTime curtime)
     {
         if (m_userstore.D_StoreLock.ContainsKey(id))
         {
-            if (DateTime.Parse(m_userstore.D_StoreLock[id].Time).CompareTo(TimeManager.Instance.Cur_Time) > 0) // a.compareto(b) => 0보다작으면 a보다 b가이전, 0은 a==b, 0보다 크면 a보다 b가 후
+            if (DateTime.Parse(m_userstore.D_StoreLock[id].Time).CompareTo(curtime) > 0) // a.compareto(b) => 0보다작으면 a보다 b가이전, 0은 a==b, 0보다 크면 a보다 b가 후
             {
                 return true;
             }

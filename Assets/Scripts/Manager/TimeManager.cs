@@ -30,6 +30,20 @@ public class TimeManager : Manager<TimeManager>
             }
         }
     }
+    public async Task<DateTime> Cur_TimeAsync()
+    {
+        int loop = 0;
+        while (isCurTimeSet == false)
+        {
+            await Task.Delay(10);
+            loop++;
+            if (loop > 500)
+            {
+                throw new Exception("Cur Time Async Infinity Loop");
+            }
+        }
+        return DateTime.UtcNow.AddSeconds(Time_Diff);
+    }
 
     public static bool isCurTimeSet; //현재시간 설정이 되어 있는가  (시작시, 홈화면으로나갔다가 들어올시 false 로 바뀜)
 
@@ -80,7 +94,7 @@ public class TimeManager : Manager<TimeManager>
     public async Task Access_Reset_Check()
     {
         Debug.Log("엑세스 리셋 체크");
-        var data = await User_Time.m_UserTime.Access_Reset(Cur_Time);
+        var data = await User_Time.m_UserTime.Access_Reset(await Cur_TimeAsync());
         if(data.day_count == -1)
         {
             Debug.Log("첫접속");
