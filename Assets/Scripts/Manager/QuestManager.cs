@@ -14,6 +14,7 @@ public enum E_QuestState
 }
 public class QuestManager : Manager<QuestManager>
 {
+    public static readonly int[] Attendance_Quest = new int[] { 1, 2, 3, 4, 5, 6, 7 };
     private void Awake()
     {
         User_Quest.m_UserQuest = new User_Quest();
@@ -21,30 +22,43 @@ public class QuestManager : Manager<QuestManager>
         {
             StreamingManager.Read_Data<J_QuestData>(StreamingManager.Get_StreamingPath(J_QuestData.Path), QuestData.Data_DicSet);
         }));
+        TimeManager.ev_DailyReset += Check_Attendance;
     }
-  
+    public async void Check_Attendance(object sender, int daycount)
+    {
+        if (Get_State(Attendance_Quest.Length - 1) == E_QuestState.Complete)
+        {
+            await InvenManager.Instance.Remove_byKind((ItemData.AttendanceQuest_Count.kind, ItemData.AttendanceQuest_Count.id, 7).ToArray());
+            await Cancel(Attendance_Quest);
+            await Accept(Attendance_Quest);
+        }
+    }
     public E_QuestState Get_State(int id)
     {
         return User_Quest.m_UserQuest.Get_State(id);
     }
-    public void Accept(int id)
+    public async Task Accept(int[] id)
     {
         User_Quest.m_UserQuest.Accept(id);
     }
-    #region Cancel override
 
-    public void Cancel(int[] id)
+    public async Task Cancel(int[] id)
     {
         User_Quest.m_UserQuest.Cancel(id);
     }
-    public void Cancel(List<int> id)   
+
+    public async Task Complete(int[] id)
     {
-        User_Quest.m_UserQuest.Cancel(id.ToArray());
+        var reward_info = await User_Quest.m_UserQuest.Complete(id);
+        Debug.Log("Äù½ºÆ® º¸»ó : ");
+        for (int i = 0; i < reward_info.Length; i++)
+        {
+            Debug.Log(" kind : " + reward_info[i].kind + " id : " + reward_info[i].id + " count : " + reward_info[i].count);
+        }
     }
-    #endregion
-    public void Complete(int id)
+    public async Task Set_State(int[] id, E_QuestState state)
     {
-        User_Quest.m_UserQuest.Complete(id);
+
     }
 
     #region Test
@@ -52,12 +66,12 @@ public class QuestManager : Manager<QuestManager>
     [ContextMenu("Äù½ºÆ® ¼ö¶ô")]
     public void Test_Accept()
     {
-        Accept(Test_QuestID);
+        Accept(Test_QuestID.ToArray());
     }
     [ContextMenu("Äù½ºÆ® ¿Ï·á")]
     public void Test_Complete()
     {
-        Complete(Test_QuestID);
+        Complete(Test_QuestID.ToArray());
     }
     [ContextMenu("Äù½ºÆ® Ãë¼Ò")]
     public void Test_Cancel()
@@ -107,7 +121,13 @@ public class User_Quest : UserData_Server
             else
             {
                 Debug.Log("Quest_Init");
-
+                for (int i = 0; i < QuestManager.Attendance_Quest.Length; i++)
+                {
+                    D_Quest.Add(QuestManager.Attendance_Quest[i], new Quest() 
+                    {
+                        State = E_QuestState.UnCompletable
+                    });
+                }
                 UserManager.Save_LocalUD(Path, this);
             }
         }
@@ -171,7 +191,7 @@ public class User_Quest : UserData_Server
 
         throw new Exception("QuestState case is empty : " + state);
     }
-    public async void Accept(int id)
+    public async Task Accept(int[] id)
     {
         if (UserManager.Use_Local)
         {
@@ -183,7 +203,7 @@ public class User_Quest : UserData_Server
             //server
         }
     }
-    public async void Cancel(int[] id)
+    public async Task Cancel(int[] id)
     {
         if (UserManager.Use_Local)
         {
@@ -195,15 +215,18 @@ public class User_Quest : UserData_Server
             //server
         }
     }
-    public async void Complete(int id)
+    public async Task<(int kind, int id, int count)[]> Complete(int[] id)
     {
         if (UserManager.Use_Local)
         {
             var data = await LocalUser_Quest.Complete(id);
             m_UserQuest.D_Quest = data.d_quest;
             User_Inven.m_UserInven.D_Inven = data.d_inven;
+            User_Randombox.m_UserRandombox.D_Randombox = data.d_randombox;
             ac_QuestChanged?.Invoke();
             User_Inven.ac_InvenChanged?.Invoke();
+            User_Randombox.ac_RandomboxChanged?.Invoke();
+            return data.reward_info;
         }
         else
         {
@@ -272,26 +295,29 @@ public class LocalUser_Quest
         throw new Exception("QuestState case is empty : " + state);
     }
 
-    public static async Task<Dictionary<int, User_Quest.Quest>> Accept(int id)
+    public static async Task<Dictionary<int, User_Quest.Quest>> Accept(int[] id)
     {
         await Task.Delay(GameManager.Instance.TaskDelay);
         User_Quest m_userquest = UserManager.Load_LocalUD<User_Quest>(User_Quest.Path);
-        E_QuestState state = await Get_State(id);
-        if (state == E_QuestState.Acceptable)
+        for (int i = 0; i < id.Length; i++)
         {
-            if (m_userquest.D_Quest.ContainsKey(id))
+            E_QuestState state = await Get_State(id[i]);
+            if (state == E_QuestState.Acceptable)
             {
-                m_userquest.D_Quest[id].State = E_QuestState.UnCompletable;
+                if (m_userquest.D_Quest.ContainsKey(id[i]))
+                {
+                    m_userquest.D_Quest[id[i]].State = E_QuestState.UnCompletable;
+                }
+                else
+                {
+                    m_userquest.D_Quest.Add(id[i], new User_Quest.Quest() { State = E_QuestState.UnCompletable });
+
+                }
             }
             else
             {
-                m_userquest.D_Quest.Add(id, new User_Quest.Quest() { State = E_QuestState.UnCompletable });
-
+                throw new Exception("State is not Acceptable : id " + id[i] + " ,state " + state);
             }
-        }
-        else
-        {
-            throw new Exception("State is not Acceptable : id " + id + " ,state " + state);
         }
         UserManager.Save_LocalUD(User_Quest.Path, m_userquest);
         return m_userquest.D_Quest;
@@ -308,32 +334,37 @@ public class LocalUser_Quest
         UserManager.Save_LocalUD(User_Quest.Path, m_userquest);
         return m_userquest.D_Quest;
     }
-    public static async Task<(Dictionary<int, User_Quest.Quest> d_quest,Dictionary<int,User_Inven.Inven> d_inven)> Complete(int id)
+    public static async Task<(Dictionary<int, User_Quest.Quest> d_quest,Dictionary<int,User_Inven.Inven> d_inven, (int kind, int id, int count)[] reward_info, Dictionary<int,int> d_randombox)> Complete(int[] id)
     {
         await Task.Delay(GameManager.Instance.TaskDelay);
         User_Quest m_userquest = UserManager.Load_LocalUD<User_Quest>(User_Quest.Path);
-        E_QuestState state = await Get_State(id);
-        if (state == E_QuestState.Completable)
+        List<(int kind, int id, int count)> l_reward = new List<(int kind, int id, int count)>();
+        for (int i = 0; i < id.Length; i++)
         {
-            if (m_userquest.D_Quest.ContainsKey(id))
+            E_QuestState state = await Get_State(id[i]);
+            if (state == E_QuestState.Completable)
             {
-                m_userquest.D_Quest[id].State = E_QuestState.Complete;
+                if (m_userquest.D_Quest.ContainsKey(id[i]))
+                {
+                    m_userquest.D_Quest[id[i]].State = E_QuestState.Complete;
+                }
+                else
+                {
+                    m_userquest.D_Quest.Add(id[i], new User_Quest.Quest() { State = E_QuestState.Complete });
+                }
+                QuestData cur_quest = QuestData.Get(id[i]);
+                l_reward.Add(cur_quest.Reward_Info);
             }
             else
             {
-                m_userquest.D_Quest.Add(id, new User_Quest.Quest() { State = E_QuestState.Complete });
+                throw new Exception("State is not Completable : id " + id + " ,state " + state);
             }
-            QuestData cur_quest = QuestData.Get(id);
-            Dictionary<int, User_Inven.Inven> d_inven = await LocalUser_Inven.Add(cur_quest.Reward_Info);
+        }
+        var data = await LocalUser_Randombox.Open_Randombox(l_reward.ToArray());
+        Dictionary<int, User_Inven.Inven> d_inven = await LocalUser_Inven.Add(data.reward_info);
 
-            UserManager.Save_LocalUD(User_Quest.Path, m_userquest);
-            return (m_userquest.D_Quest, d_inven);
-        }
-        else
-        {
-            throw new Exception("State is not Completable : id " + id + " ,state " + state);
-        }
-      
+        UserManager.Save_LocalUD(User_Quest.Path, m_userquest);
+        return (m_userquest.D_Quest, d_inven, data.reward_info, data.d_randombox);
     }
 }
 public static class Ex_Quest

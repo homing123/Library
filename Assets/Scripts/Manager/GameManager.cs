@@ -39,6 +39,7 @@ public class GameManager : MonoBehaviour
         temp = InputManager.Instance;
         temp = StoreManager.Instance;
         temp = RandomBoxManager.Instance;
+        temp = AdManager.Instance;
 
         StartCoroutine(TimeManager.Instance.Get_CurTime());
         while(TimeManager.isCurTimeSet == false)

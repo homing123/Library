@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Threading.Tasks;
 using static AdManager;
 
 public class AdManager : Manager<AdManager>
@@ -20,6 +21,7 @@ public class AdManager : Manager<AdManager>
     }
 
     public static bool isShow = false;
+    public static bool isReward = false;
     public I_AdSdk_Adapter i_Adapter;
     public Action ac_Reward;
 
@@ -90,6 +92,25 @@ public class AdManager : Manager<AdManager>
             ac_reward?.Invoke();
         }
     }
+
+    public async Task<bool> ShowAsync(E_Adkind adkind)
+    {
+        if (i_Adapter != null)
+        {
+            i_Adapter.Show(adkind);
+            while (isShow)
+            {
+                await Task.Delay(10);
+            }
+            await Task.Delay(10);
+            return isReward;
+        }
+        else
+        {
+            await Task.Delay(10);
+            return true;
+        }
+    }
     public bool isLoaded(E_Adkind adkind)
     {
         if(i_Adapter != null)
@@ -151,6 +172,7 @@ public abstract class I_AdSdk_Adapter
     public void Show(E_Adkind adkind)
     {
         AdManager.isShow = true;
+        isReward = false;
         if (D_AdInfo[adkind].LoadedCount > 0)
         {
             D_AdInfo[adkind].LoadedCount--;
@@ -158,6 +180,7 @@ public abstract class I_AdSdk_Adapter
             {
                 AdManager.D_ev_Loaded[adkind]?.Invoke(this, false);
             }
+            _Show(adkind);
         }
         else
         {
@@ -170,12 +193,14 @@ public abstract class I_AdSdk_Adapter
         Load(adkind);
         if (reward)
         {
+            isReward = true;
             AdManager.Instance.ac_Reward?.Invoke();
         }
     }
     public void Load(E_Adkind adkind)
     {
         D_AdInfo[adkind].Loading = true;
+        _Load(adkind);
     }
     public void LoadFail(E_Adkind adkind)
     {
@@ -191,6 +216,9 @@ public abstract class I_AdSdk_Adapter
             }
         }
     }
+
+    public abstract void _Load(E_Adkind adkind);
+    public abstract void _Show(E_Adkind adkind);
 
 }
 

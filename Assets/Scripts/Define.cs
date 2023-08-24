@@ -189,6 +189,28 @@ public static class Ex_Define
         await func?.Invoke();
         ac_complete?.Invoke();
     }
+    public static bool Empty<T>(this T[] arr)
+    {
+        if(arr == null || arr.Length == 0)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+    public static bool Empty<T>(this List<T> list)
+    {
+        if (list == null || list.Count == 0)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
 }
 
 //동기를 병렬비동기로 바꿀때 사용

@@ -29,7 +29,7 @@ public class StoreManager : Manager<StoreManager>
     {
         //광고 완료시 ac_buy 호출
     }
-    public void Buy(int id, int count = 1)
+    public async void Buy(int id, int count = 1)
     {
         if (count == 0)
         {
@@ -42,12 +42,19 @@ public class StoreManager : Manager<StoreManager>
         }
         else if (cur_store.Advertisement)
         {
-            //광고완료 (User_Store.m_UserStore.Buy(id, count));
+            await AdManager.Instance.ShowAsync(AdManager.E_Adkind.Reward_Video);
+            Debug.Log("쇼에이싱크 다음");
         }
-        else
+      
+        var reward_info = await User_Store.m_UserStore.Buy(id, count);
+
+
+        Debug.Log("구매 보상 : ");
+        for (int i = 0; i < reward_info.Length; i++)
         {
-            User_Store.m_UserStore.Buy(id, count);
+            Debug.Log(" kind : " + reward_info[i].kind + " id : " + reward_info[i].id + " count : " + reward_info[i].count);
         }
+        //연출
     }
 
     #region Test
@@ -101,7 +108,7 @@ public class User_Store : UserData_Server
             //서버에서 있는지없는지 확인 후 없으면 생성해서 보내면 그거 받으면됨
         }
     }
-    public async void Buy(int id, int count = 1)
+    public async Task<(int kind, int id, int count)[]> Buy(int id, int count = 1)
     {
         if (UserManager.Use_Local)
         {
@@ -111,12 +118,9 @@ public class User_Store : UserData_Server
             User_Inven.m_UserInven.D_Inven = data.D_Inven;
             ac_StoreChanged?.Invoke();
             User_Inven.ac_InvenChanged?.Invoke();
-
-            if (data.D_Randombox != null)
-            {
-                User_Randombox.m_UserRandombox.D_Randombox = data.D_Randombox;
-                User_Randombox.ac_RandomboxChanged?.Invoke();
-            }
+            User_Randombox.m_UserRandombox.D_Randombox = data.D_Randombox;
+            User_Randombox.ac_RandomboxChanged?.Invoke();
+            return data.Reward_Info;
         }
         else
         {
@@ -139,7 +143,7 @@ public class User_Store : UserData_Server
 }
 public class LocalUser_Store
 {
-    public static async Task<(Dictionary<int, User_Store.StoreLock> D_StoreLock, List<User_Store.Record> L_Purchase_Record, Dictionary<int,User_Inven.Inven> D_Inven, Dictionary<int,int> D_Randombox)> Buy(int id, int count = 1)
+    public static async Task<(Dictionary<int, User_Store.StoreLock> D_StoreLock, List<User_Store.Record> L_Purchase_Record, Dictionary<int,User_Inven.Inven> D_Inven, Dictionary<int,int> D_Randombox, (int kind, int id, int count)[] Reward_Info)> Buy(int id, int count = 1)
     {
         Debug.Log("구매");
         await Task.Delay(GameManager.Instance.TaskDelay);
@@ -147,7 +151,6 @@ public class LocalUser_Store
         StoreData cur_store = StoreData.Get(id);
 
         var price_info = cur_store.Get_PriceInfo(count);
-        List<(int kind, int id, int count)> reward_info = null;
 
         if (await LocalUser_Inven.CheckItemCount(price_info))
         {
@@ -176,39 +179,16 @@ public class LocalUser_Store
             //가격 지불
             await LocalUser_Inven.Remove_byKind(price_info);
 
-            //상품목록 생성
-            reward_info = cur_store.Get_RewardInfo_List(count);
-
-            int test = 0;
-
-            Dictionary<int, int> d_randombox = null;
-            for (int i = 0; i < reward_info.Count; i++)
-            {
-                test++;
-                if (test > 1000)
-                {
-                    throw new Exception("Buy Loop is Infinity! ID : " + id + " Count : " + count);
-                }
-                switch (reward_info[i].kind)
-                {
-                    case ItemData.RandomboxKind:
-                        var data = await LocalUser_Randombox.Gacha_byBuy(reward_info[i].id, reward_info[i].count);
-                        d_randombox = data.d_randombox;
-                        reward_info.Add(data.item_info);
-                        reward_info.RemoveAt(i);
-                        i--;
-                        break;
-                }
-            }
+            //상품목록 생성 및 랜덤박스 오픈
+            var data = await LocalUser_Randombox.Open_Randombox(cur_store.Get_RewardInfo(count));
 
             //획득
-            Dictionary<int,User_Inven.Inven> d_inven = await LocalUser_Inven.Add(reward_info.ToArray());
+            Dictionary<int,User_Inven.Inven> d_inven = await LocalUser_Inven.Add(data.reward_info);
 
-            Debug.Log("구매 완료");
 
             UserManager.Save_LocalUD(User_Store.Path, m_userstore);
-            Debug.Log("구매 처리 끝");
-            return (m_userstore.D_StoreLock, m_userstore.L_Purchase_Record, d_inven, d_randombox);
+            Debug.Log("구매완료");
+            return (m_userstore.D_StoreLock, m_userstore.L_Purchase_Record, d_inven, data.d_randombox, data.reward_info);
         }
         else
         {

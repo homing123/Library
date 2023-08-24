@@ -14,58 +14,22 @@ public class InvenManager : Manager<InvenManager>
         }));
     }
 
-    #region Add override
-    public void Add((int kind, int id, int count)[] add_info)
+    public async Task Add((int kind, int id, int count)[] add_info)
     {
-        User_Inven.m_UserInven.Add(add_info);
+        await User_Inven.m_UserInven.Add(add_info);
     }
-    public void Add(List<(int kind, int id, int count)> add_info)
+    public async Task Remove_byKind((int kind, int id, int count)[] remove_info)
     {
-        User_Inven.m_UserInven.Add(add_info.ToArray());
+        await User_Inven.m_UserInven.Remove_byKind(remove_info);
     }
-
-    public void Add(int[] kind, int[] id, int[] count)
+    public async Task Remove_byKey((int key, int count)[] remove_info)
     {
-        var add_info = new (int, int, int)[kind.Length];
-        for (int i = 0; i < add_info.Length; i++)
-        {
-            add_info[i] = (kind[i], id[i], count[i]);
-        }
-        User_Inven.m_UserInven.Add(add_info);
+        await User_Inven.m_UserInven.Remove_byKey(remove_info);
     }
-
-
-    #endregion
-    #region Remove override
-    public void Remove_byKind((int kind, int id, int count)[] remove_info)
-    {
-        User_Inven.m_UserInven.Remove_byKind(remove_info);
-    }
-    public void Remove_byKind(List<(int kind, int id, int count)> remove_info)
-    {
-        User_Inven.m_UserInven.Remove_byKind(remove_info.ToArray());
-    }
-    public void Remove_byKey((int key, int count)[] remove_info)
-    {
-        User_Inven.m_UserInven.Remove_byKey(remove_info);
-    }
-    public void Remove_byKey(List<(int key, int count)> remove_info)
-    {
-        User_Inven.m_UserInven.Remove_byKey(remove_info.ToArray());
-    }
-
-    #endregion
-    #region CheckItemCount override
     public bool CheckItemCount((int kind, int id, int count)[] price_info)
     {
         return User_Inven.m_UserInven.CheckItemCount(price_info);
     }
-    public bool CheckItemCount(List<(int kind, int id, int count)> price_info)
-    {
-        return User_Inven.m_UserInven.CheckItemCount(price_info.ToArray());
-    }
-
-    #endregion
 
 
     public static (int kind, int id, int count)[] ToItemInfo(int[] kind, int[] id, int[] count)
@@ -95,7 +59,7 @@ public class InvenManager : Manager<InvenManager>
     {
         if (CheckItemCount((Test_Kind, Test_ID, Test_Count).ToArray()))
         {
-            Remove_byKind((Test_Kind, Test_ID, Test_Count).ToArray());
+            await Remove_byKind((Test_Kind, Test_ID, Test_Count).ToArray());
         }
         else
         {
@@ -162,7 +126,7 @@ public class User_Inven : UserData_Server
         }
     }
 
-    public async void Add((int kind, int id, int count)[] add_info)
+    public async Task Add((int kind, int id, int count)[] add_info)
     {
         if (UserManager.Use_Local)
         {
@@ -175,7 +139,7 @@ public class User_Inven : UserData_Server
         }
     }
 
-    public async void Remove_byKind((int kind, int id, int count)[] remove_info)
+    public async Task Remove_byKind((int kind, int id, int count)[] remove_info)
     {
         if (UserManager.Use_Local)
         {
@@ -187,7 +151,7 @@ public class User_Inven : UserData_Server
             //server
         }
     }
-    public async void Remove_byKey((int key, int count)[] remove_info)
+    public async Task Remove_byKey((int key, int count)[] remove_info)
     {
         if (UserManager.Use_Local)
         {
@@ -496,7 +460,10 @@ public class J_ItemData
 }
 public class ItemData
 {
+    public const int MoneyKind = 1;
+    public static readonly (int kind, int id) AttendanceQuest_Count = (2, 2);
     public const int RandomboxKind = 100;
+
     static Dictionary<(int kind, int id), ItemData> D_Data = new Dictionary<(int kind, int id), ItemData>();
 
     public int Kind;

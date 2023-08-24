@@ -17,7 +17,7 @@ public class RandomBoxManager : Manager<RandomBoxManager>
 
     public void Gacha_byInven(int inven_key, int count)
     {
-        if(count == 0)
+        if (count == 0)
         {
             throw new Exception("Gacha_byInven Coutn is 0. inven_key : " + inven_key);
         }
@@ -30,7 +30,7 @@ public class RandomBoxManager : Manager<RandomBoxManager>
     public void Test_Log()
     {
         RandomBoxData cur_box = RandomBoxData.Get(Test_RandomBoxID);
-        for(int i = 0; i < cur_box.Random_Info.Length; i++)
+        for (int i = 0; i < cur_box.Random_Info.Length; i++)
         {
             Debug.Log("RandomBox Info. Kind : " + cur_box.Random_Info[i].kind + " ID : " + cur_box.Random_Info[i].id + " Count : " + cur_box.Random_Info[i].count + " Per : " + cur_box.Random_Info[i].per);
         }
@@ -96,53 +96,41 @@ public class User_Randombox : UserData_Server
 }
 public class LocalUser_Randombox
 {
-    /// <summary>
-    /// 상점에서 뽑기시 뽑기결과만 전달
-    /// </summary>
-    /// <param name="id"></param>
-    /// <param name="count"></param>
-    /// <returns></returns>
-    public static async Task<((int kind, int id, int count)[] item_info, Dictionary<int,int> d_randombox)> Gacha_byBuy(int id, int count)
+    public static async Task<((int kind, int id, int count)[] reward_info, Dictionary<int, int> d_randombox)> Open_Randombox((int kind, int id, int count)[] item_info)
     {
         await Task.Delay(GameManager.Instance.TaskDelay);
         User_Randombox m_userrandombox = UserManager.Load_LocalUD<User_Randombox>(User_Randombox.Path);
 
-        List<(int kind, int id, int count)> l_iteminfo = new List<(int kind, int id, int count)>();
-
-        for(int i = 0; i < count; i++)
-        {
-            m_userrandombox.Add(id);
-            l_iteminfo.Add(m_userrandombox.Get_RandomboxResult(id));
-        }
-
+        List<(int kind, int id, int count)> l_reward_info = new List<(int kind, int id, int count)>();
         int test = 0;
-        for(int i = 0; i < l_iteminfo.Count; i++)
+        for (int i = 0; i < item_info.Length; i++)
         {
-            if (l_iteminfo[i].kind == ItemData.RandomboxKind)
+            if (item_info[i].kind == ItemData.RandomboxKind)
             {
-                for (int j = 0; j < l_iteminfo[i].count; i++) 
+                for (int j = 0; j < item_info[i].count; j++)
                 {
                     test++;
-                    if(test > 1000)
+                    if (test > 1000)
                     {
-                        throw new Exception("Randombox Gacha has Infinity Loop ID : " + id + " Count : " + count);
+                        throw new Exception("Open_Randombox has Infinity Loop ID : " + item_info[i].id + " Count : " + item_info[i].count);
                     }
-                    l_iteminfo.Add(m_userrandombox.Get_RandomboxResult(l_iteminfo[i].id));
+                    l_reward_info.Add(m_userrandombox.Get_RandomboxResult(item_info[i].id));
                 }
-                l_iteminfo.RemoveAt(i);
-                i--;
+            }
+            else
+            {
+                l_reward_info.Add(item_info[i]);
             }
         }
-
         UserManager.Save_LocalUD(User_Randombox.Path, m_userrandombox);
-        return (l_iteminfo.ToArray(), m_userrandombox.D_Randombox);
-    }
 
+        return (l_reward_info.ToArray(), m_userrandombox.D_Randombox);
+    }
     /// <summary>
     /// 인벤에서 랜덤상자 사용시 상자 제거 후 상자결과 획득
     /// </summary>
     /// <returns></returns>
-    public static async Task<(Dictionary<int ,User_Inven.Inven> d_inven, Dictionary<int,int> d_randombox)> Gacha_byInven(int inven_key, int count)
+    public static async Task<(Dictionary<int, User_Inven.Inven> d_inven, Dictionary<int, int> d_randombox)> Gacha_byInven(int inven_key, int count)
     {
         await Task.Delay(GameManager.Instance.TaskDelay);
 
@@ -151,7 +139,7 @@ public class LocalUser_Randombox
 
         List<(int kind, int id, int count)> l_iteminfo = new List<(int kind, int id, int count)>();
 
-        if(m_userinven.D_Inven.ContainsKey(inven_key)== false)
+        if (m_userinven.D_Inven.ContainsKey(inven_key) == false)
         {
             throw new Exception("Gacha_byInven Inven null : Inven_Key : " + inven_key);
         }
@@ -166,7 +154,6 @@ public class LocalUser_Randombox
 
         for (int i = 0; i < count; i++)
         {
-            m_userrandombox.Add(box_id);
             l_iteminfo.Add(m_userrandombox.Get_RandomboxResult(box_id));
         }
 
@@ -199,8 +186,9 @@ public static class Ex_Randombox
     public static (int kind, int id, int count)[] Get_RandomboxResult(this User_Randombox user_Randombox, int id)
     {
         RandomBoxData cur_box = RandomBoxData.Get(id);
+        user_Randombox.Add(id);
         List<(int kind, int id, int count)> l_iteminfo = new List<(int kind, int id, int count)>();
-        if (user_Randombox.isFirst(id))
+        if (cur_box.First_Reward_Info.Empty() == false && user_Randombox.isFirst(id))
         {
             l_iteminfo.Add(cur_box.First_Reward_Info);
         }
@@ -216,7 +204,7 @@ public static class Ex_Randombox
     }
     public static bool isFirst(this User_Randombox m_userrandombox, int id)
     {
-        if (m_userrandombox.D_Randombox.ContainsKey(id) == false || m_userrandombox.D_Randombox[id] == 0)
+        if ( m_userrandombox.D_Randombox[id] == 1)
         {
             return true;
         }
@@ -227,7 +215,7 @@ public static class Ex_Randombox
     }
     public static bool isMax(this User_Randombox m_userrandombox, int id, int max_count)
     {
-        if (m_userrandombox.D_Randombox.ContainsKey(id) == true && m_userrandombox.D_Randombox[id] % max_count == 0)
+        if (m_userrandombox.D_Randombox[id] % max_count == 0)
         {
             return true;
         }
@@ -275,7 +263,7 @@ public class J_RandomBoxData
 
 }
 public class RandomBoxData
-{ 
+{
     static int loop_count = 0;
     static int loop_ID;
     static Dictionary<int, RandomBoxData> D_Data = new Dictionary<int, RandomBoxData>();
@@ -320,7 +308,7 @@ public class RandomBoxData
 
         foreach (RandomBoxData cur_box in D_Data.Values)
         {
-            if(cur_box.Random_Info == null)
+            if (cur_box.Random_Info == null)
             {
                 loop_count = 0;
                 loop_ID = cur_box.ID;
@@ -362,10 +350,10 @@ public class RandomBoxData
         var random_info = new List<(int kind, int id, int count, float per)>();
         List<(int kind, int id, int count)> l_none_per = new List<(int, int, int)>(); //확률 없는 상품
         List<(int kind, int id, int count, float per)> l_per = new List<(int, int, int, float)>(); //확률 있는 상품
-        if(cur_box.Range_Kind != 0)
+        if (cur_box.Range_Kind != 0)
         {
             ItemData cur_item;
-            for(int i = cur_box.Range_Min; i <= cur_box.Range_Max; i++)
+            for (int i = cur_box.Range_Min; i <= cur_box.Range_Max; i++)
             {
                 if (ItemData.Get((cur_box.Range_Kind, i), out cur_item))
                 {
@@ -377,11 +365,11 @@ public class RandomBoxData
             }
         }
 
-        for(int i = 0; i < cur_box.Item_Kind.Length; i++)
+        for (int i = 0; i < cur_box.Item_Kind.Length; i++)
         {
-            if(cur_box.Item_Count[i] != 0)
+            if (cur_box.Item_Count[i] != 0)
             {
-                if(cur_box.Item_Per[i] > 0)
+                if (cur_box.Item_Per[i] > 0)
                 {
                     l_per.Add((cur_box.Item_Kind[i], cur_box.Item_ID[i], cur_box.Item_Count[i], cur_box.Item_Per[i]));
                 }
@@ -394,7 +382,7 @@ public class RandomBoxData
 
         float per_total = 0;
 
-        for(int i = 0; i < l_per.Count; i++)
+        for (int i = 0; i < l_per.Count; i++)
         {
             per_total += l_per[i].per;
             random_info.Add(l_per[i]);
@@ -405,7 +393,7 @@ public class RandomBoxData
             if (per_total < 100)
             {
                 float none_per = (100 - per_total) / l_none_per.Count;
-                for(int i = 0; i < l_none_per.Count; i ++)
+                for (int i = 0; i < l_none_per.Count; i++)
                 {
                     random_info.Add((l_none_per[i].kind, l_none_per[i].id, l_none_per[i].count, none_per));
                 }
@@ -415,17 +403,17 @@ public class RandomBoxData
                 throw new Exception("확률 미지정 아이템이 있는데 확률값이 100이 넘습니다");
             }
         }
-        
+
         //랜덤박스들 풀어서 넘겨줘야함
-        for(int i = 0; i < random_info.Count; i++)
+        for (int i = 0; i < random_info.Count; i++)
         {
-            if(random_info[i].kind == ItemData.RandomboxKind)
+            if (random_info[i].kind == ItemData.RandomboxKind)
             {
                 float cur_per = random_info[i].per;
                 RandomBoxData info_box = RandomBoxData.Get(random_info[i].id);
                 random_info.RemoveAt(i);
                 i--;
-                if(info_box.Random_Info == null)
+                if (info_box.Random_Info == null)
                 {
                     Set_RandomInfo(info_box);
                 }
@@ -436,12 +424,12 @@ public class RandomBoxData
                     info_box_totalper += info_box.Random_Info[j].per;
                 }
 
-                for (int j=0;j< info_box.Random_Info.Length; j++)
+                for (int j = 0; j < info_box.Random_Info.Length; j++)
                 {
                     random_info.Add((info_box.Random_Info[j].kind, info_box.Random_Info[j].id, info_box.Random_Info[j].count, info_box.Random_Info[j].per * (cur_per / info_box_totalper)));
                 }
             }
-            if(random_info.Count > 10000)
+            if (random_info.Count > 10000)
             {
                 throw new Exception("samebox infinity loop ID : " + loop_ID);
             }
@@ -453,7 +441,7 @@ public class RandomBoxData
     public (int kind, int id, int count) Gacha()
     {
         float[] arr_per = new float[Random_Info.Length];
-        for(int i = 0; i < arr_per.Length; i++)
+        for (int i = 0; i < arr_per.Length; i++)
         {
             arr_per[i] = Random_Info[i].per;
         }
