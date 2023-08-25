@@ -60,6 +60,17 @@ public class SoundManager : Manager<SoundManager>
         m_BGMSource.clip = clip;
         m_BGMSource.Play();
     }
+    public void Play_Vibration()
+    {
+        if (User_Sound.m_UserSound.Vibration)
+        {
+            Vibration.Vibrate();
+        }
+    }
+    public void Set_Vibration(bool enable)
+    {
+        User_Sound.m_UserSound.Vibration = enable;
+    }
     /// <summary>
     /// volume range = (0 ~ 1)
     /// </summary>
@@ -133,6 +144,7 @@ public class User_Sound : UserData_Local
 
     public float SFX_Volume;
     public float BGM_Volume;
+    public bool Vibration;
     public override void Load()
     {
         if (UserManager.Exist_LocalUD(Path))
@@ -140,6 +152,7 @@ public class User_Sound : UserData_Local
             var data = UserManager.Load_LocalUD<User_Sound>(Path);
             SFX_Volume = data.SFX_Volume;
             BGM_Volume = data.BGM_Volume;
+            Vibration = data.Vibration;
         }
         else
         {
@@ -147,6 +160,7 @@ public class User_Sound : UserData_Local
 
             SFX_Volume = 1;
             BGM_Volume = 1;
+            Vibration = true;
             UserManager.Save_LocalUD(Path, this);
         }
     }
