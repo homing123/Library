@@ -26,7 +26,9 @@ public class GameManager : MonoBehaviour
     }
     void Start()
     {
-        StartCoroutine(LoadingStart());
+        int[] temp = new int[] { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+        temp.Shuffle();
+        //StartCoroutine(LoadingStart());
     }
     IEnumerator LoadingStart()
     {
