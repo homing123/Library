@@ -361,7 +361,7 @@ public class LocalUser_Quest
             }
         }
         var data = await LocalUser_Randombox.Open_Randombox(l_reward.ToArray());
-        Dictionary<int, User_Inven.Inven> d_inven = await LocalUser_Inven.Add(data.reward_info);
+        Dictionary<int, User_Inven.Inven> d_inven = await LocalUser_Inven.Add_Remove_byKind(data.reward_info, null);
 
         UserManager.Save_LocalUD(User_Quest.Path, m_userquest);
         return (m_userquest.D_Quest, d_inven, data.reward_info, data.d_randombox);

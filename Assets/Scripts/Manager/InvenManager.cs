@@ -131,7 +131,7 @@ public class User_Inven : UserData_Server
     {
         if (UserManager.Use_Local)
         {
-            m_UserInven.D_Inven = await LocalUser_Inven.Add(add_info);
+            m_UserInven.D_Inven = await LocalUser_Inven.Add_Remove_byKind(add_info, null);
             ac_InvenChanged?.Invoke();
         }
         else
@@ -144,7 +144,7 @@ public class User_Inven : UserData_Server
     {
         if (UserManager.Use_Local)
         {
-            m_UserInven.D_Inven = await LocalUser_Inven.Remove_byKind(remove_info);
+            m_UserInven.D_Inven = await LocalUser_Inven.Add_Remove_byKind(null, remove_info);
             ac_InvenChanged?.Invoke();
         }
         else
@@ -156,7 +156,7 @@ public class User_Inven : UserData_Server
     {
         if (UserManager.Use_Local)
         {
-            m_UserInven.D_Inven = await LocalUser_Inven.Remove_byKey(remove_info);
+            m_UserInven.D_Inven = await LocalUser_Inven.Add_Remove_byKey(null, remove_info);
             ac_InvenChanged?.Invoke();
         }
         else
@@ -218,152 +218,230 @@ public class LocalUser_Inven
         }
         return true;
     }
-    public static async Task<Dictionary<int, User_Inven.Inven>> Add((int kind, int id, int count)[] add_info)
+    public static async Task<Dictionary<int, User_Inven.Inven>> Add_Remove_byKind((int kind, int id, int count)[] add_info, (int kind, int id, int count)[] remove_info)
     {
         await Task.Delay(GameManager.Instance.TaskDelay);
         User_Inven m_userinven = UserManager.Load_LocalUD<User_Inven>(User_Inven.Path);
         User_Inven.Inven inven;
-        for (int i = 0; i < add_info.Length; i++)
+
+        if (remove_info.Empty() == false)
         {
-            ItemData item = ItemData.Get((add_info[i].kind, add_info[i].id));
-            if (item.Overlap_Size == 0)
+            //제거처리
+            int[] keys;
+            for (int i = 0; i < remove_info.Length; i++)
             {
-                if (m_userinven.Find_Addable(add_info[i].kind, add_info[i].id, out inven))
+                if (m_userinven.Get(remove_info[i].kind, remove_info[i].id, out keys))
                 {
-                    inven.Count += add_info[i].count;
+                    int cur_count = remove_info[i].count;
+                    for (int j = 0; j < keys.Length; j++)
+                    {
+                        inven = m_userinven.D_Inven[keys[j]];
+                        if (inven.Count > cur_count)
+                        {
+                            inven.Count -= cur_count;
+                            cur_count = 0;
+                            break;
+                        }
+                        else if (inven.Count == cur_count)
+                        {
+                            m_userinven.D_Inven.Remove(keys[j]);
+                            cur_count = 0;
+                            break;
+                        }
+                        else
+                        {
+                            cur_count -= inven.Count;
+                            m_userinven.D_Inven.Remove(keys[j]);
+                        }
+                    }
+                    if (cur_count > 0)
+                    {
+                        throw new Exception("Inven Remove Count Error :  ( kind : " + remove_info[i].kind + " id : " + remove_info[i].id + " count : " + remove_info[i].count + " )");
+                    }
                 }
                 else
                 {
-                    m_userinven.D_Inven.Add(m_userinven.D_Inven.Get_Idx(), new User_Inven.Inven()
-                    {
-                        Kind = add_info[i].kind,
-                        Id = add_info[i].id,
-                        Count = add_info[i].count
-                    });
+                    throw new Exception("Inven Remove Key is Null :  ( kind : " + remove_info[i].kind + " id : " + remove_info[i].id + " count : " + remove_info[i].count + " )");
                 }
             }
-            else
+        }
+
+        if (add_info.Empty() == false)
+        {
+            //획득처리
+            for (int i = 0; i < add_info.Length; i++)
             {
-                while (true)
+                ItemData item = ItemData.Get((add_info[i].kind, add_info[i].id));
+                if (item.Overlap_Size == 0)
                 {
-                    bool Find_Addable_is_None = false; //추가가능한게 더이상 없는경우
-                    if (Find_Addable_is_None == false && m_userinven.Find_Addable(add_info[i].kind, add_info[i].id, out inven))
+                    if (m_userinven.Find_Addable(add_info[i].kind, add_info[i].id, out inven))
                     {
-                        if (inven.Count + add_info[i].count > item.Overlap_Size)
-                        {
-                            add_info[i].count -= item.Overlap_Size - inven.Count;
-                            inven.Count = item.Overlap_Size;
-                        }
-                        else
-                        {
-                            inven.Count = inven.Count + add_info[i].count;
-                            break;
-                        }
+                        inven.Count += add_info[i].count;
                     }
                     else
                     {
-                        Find_Addable_is_None = true;
-                        if (add_info[i].count > item.Overlap_Size)
+                        m_userinven.D_Inven.Add(m_userinven.D_Inven.Get_Idx(), new User_Inven.Inven()
                         {
-                            add_info[i].count -= item.Overlap_Size;
-                            m_userinven.D_Inven.Add(m_userinven.D_Inven.Get_Idx(), new User_Inven.Inven()
+                            Kind = add_info[i].kind,
+                            Id = add_info[i].id,
+                            Count = add_info[i].count
+                        });
+                    }
+                }
+                else
+                {
+                    while (true)
+                    {
+                        bool Find_Addable_is_None = false; //추가가능한게 더이상 없는경우
+                        if (Find_Addable_is_None == false && m_userinven.Find_Addable(add_info[i].kind, add_info[i].id, out inven))
+                        {
+                            if (inven.Count + add_info[i].count > item.Overlap_Size)
                             {
-                                Kind = add_info[i].kind,
-                                Id = add_info[i].id,
-                                Count = item.Overlap_Size
-                            });
-
+                                add_info[i].count -= item.Overlap_Size - inven.Count;
+                                inven.Count = item.Overlap_Size;
+                            }
+                            else
+                            {
+                                inven.Count = inven.Count + add_info[i].count;
+                                break;
+                            }
                         }
                         else
                         {
-                            m_userinven.D_Inven.Add(m_userinven.D_Inven.Get_Idx(), new User_Inven.Inven()
+                            Find_Addable_is_None = true;
+                            if (add_info[i].count > item.Overlap_Size)
                             {
-                                Kind = add_info[i].kind,
-                                Id = add_info[i].id,
-                                Count = add_info[i].count
-                            });
-                            break;
+                                add_info[i].count -= item.Overlap_Size;
+                                m_userinven.D_Inven.Add(m_userinven.D_Inven.Get_Idx(), new User_Inven.Inven()
+                                {
+                                    Kind = add_info[i].kind,
+                                    Id = add_info[i].id,
+                                    Count = item.Overlap_Size
+                                });
+
+                            }
+                            else
+                            {
+                                m_userinven.D_Inven.Add(m_userinven.D_Inven.Get_Idx(), new User_Inven.Inven()
+                                {
+                                    Kind = add_info[i].kind,
+                                    Id = add_info[i].id,
+                                    Count = add_info[i].count
+                                });
+                                break;
+                            }
                         }
                     }
                 }
             }
         }
+
         UserManager.Save_LocalUD(User_Inven.Path, m_userinven);
         return m_userinven.D_Inven;
     }
-
-    public static async Task<Dictionary<int, User_Inven.Inven>> Remove_byKey((int key, int count)[] remove_info)
+    public static async Task<Dictionary<int, User_Inven.Inven>> Add_Remove_byKey((int kind, int id, int count)[] add_info, (int key, int count)[] remove_info)
     {
         await Task.Delay(GameManager.Instance.TaskDelay);
         User_Inven m_userinven = UserManager.Load_LocalUD<User_Inven>(User_Inven.Path);
         User_Inven.Inven inven;
-        for (int i = 0; i < remove_info.Length; i++)
-        {
-            if (m_userinven.Get(remove_info[i].key, out inven))
-            {
-                if (inven.Count < remove_info[i].count)
-                {
-                    throw new Exception("Inven Remove Count Error :  ( key : " + remove_info[i].key + " count : " + remove_info[i].count + " Inven Count : " + inven.Count + " )");
-                }
-                else
-                {
-                    inven.Count -= remove_info[i].count;
-                    if (inven.Count == 0)
-                    {
-                        m_userinven.D_Inven.Remove(remove_info[i].key);
-                    }
-                }
-            }
-            else
-            {
-                throw new Exception("Inven Remove Key is Null :  ( key : " + remove_info[i].key + " )");
-            }
-        }
-        UserManager.Save_LocalUD(User_Inven.Path, m_userinven);
-        return m_userinven.D_Inven;
-    }
-    public static async Task<Dictionary<int, User_Inven.Inven>> Remove_byKind((int kind, int id, int count)[] remove_info)
-    {
-        await Task.Delay(GameManager.Instance.TaskDelay);
-        User_Inven m_userinven = UserManager.Load_LocalUD<User_Inven>(User_Inven.Path);
-        int[] keys;
 
-        for (int i = 0; i < remove_info.Length; i++)
+        if (remove_info.Empty() == false)
         {
-            if (m_userinven.Get(remove_info[i].kind, remove_info[i].id, out keys))
+            //제거처리
+            for (int i = 0; i < remove_info.Length; i++)
             {
-                int cur_count = remove_info[i].count;
-                for (int j = 0; j < keys.Length; j++)
+                if (m_userinven.Get(remove_info[i].key, out inven))
                 {
-                    User_Inven.Inven cur_inven = m_userinven.D_Inven[keys[j]];
-                    if (cur_inven.Count > cur_count)
+                    if (inven.Count < remove_info[i].count)
                     {
-                        cur_inven.Count -= cur_count;
-                        cur_count = 0;
-                        break;
-                    }
-                    else if (cur_inven.Count == cur_count)
-                    {
-                        m_userinven.D_Inven.Remove(keys[j]);
-                        cur_count = 0;
-                        break;
+                        throw new Exception("Inven Remove Count Error :  ( key : " + remove_info[i].key + " count : " + remove_info[i].count + " Inven Count : " + inven.Count + " )");
                     }
                     else
                     {
-                        cur_count -= cur_inven.Count;
-                        m_userinven.D_Inven.Remove(keys[j]);
+                        inven.Count -= remove_info[i].count;
+                        if (inven.Count == 0)
+                        {
+                            m_userinven.D_Inven.Remove(remove_info[i].key);
+                        }
                     }
                 }
-                if (cur_count > 0)
+                else
                 {
-                    throw new Exception("Inven Remove Count Error :  ( kind : " + remove_info[i].kind + " id : " + remove_info[i].id + " count : " + remove_info[i].count + " )");
+                    throw new Exception("Inven Remove Key is Null :  ( key : " + remove_info[i].key + " )");
                 }
             }
-            else
+        }
+
+        if (add_info.Empty() == false)
+        {
+            //획득처리
+            for (int i = 0; i < add_info.Length; i++)
             {
-                throw new Exception("Inven Remove Key is Null :  ( kind : " + remove_info[i].kind + " id : " + remove_info[i].id + " count : " + remove_info[i].count + " )");
+                ItemData item = ItemData.Get((add_info[i].kind, add_info[i].id));
+                if (item.Overlap_Size == 0)
+                {
+                    if (m_userinven.Find_Addable(add_info[i].kind, add_info[i].id, out inven))
+                    {
+                        inven.Count += add_info[i].count;
+                    }
+                    else
+                    {
+                        m_userinven.D_Inven.Add(m_userinven.D_Inven.Get_Idx(), new User_Inven.Inven()
+                        {
+                            Kind = add_info[i].kind,
+                            Id = add_info[i].id,
+                            Count = add_info[i].count
+                        });
+                    }
+                }
+                else
+                {
+                    while (true)
+                    {
+                        bool Find_Addable_is_None = false; //추가가능한게 더이상 없는경우
+                        if (Find_Addable_is_None == false && m_userinven.Find_Addable(add_info[i].kind, add_info[i].id, out inven))
+                        {
+                            if (inven.Count + add_info[i].count > item.Overlap_Size)
+                            {
+                                add_info[i].count -= item.Overlap_Size - inven.Count;
+                                inven.Count = item.Overlap_Size;
+                            }
+                            else
+                            {
+                                inven.Count = inven.Count + add_info[i].count;
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            Find_Addable_is_None = true;
+                            if (add_info[i].count > item.Overlap_Size)
+                            {
+                                add_info[i].count -= item.Overlap_Size;
+                                m_userinven.D_Inven.Add(m_userinven.D_Inven.Get_Idx(), new User_Inven.Inven()
+                                {
+                                    Kind = add_info[i].kind,
+                                    Id = add_info[i].id,
+                                    Count = item.Overlap_Size
+                                });
+
+                            }
+                            else
+                            {
+                                m_userinven.D_Inven.Add(m_userinven.D_Inven.Get_Idx(), new User_Inven.Inven()
+                                {
+                                    Kind = add_info[i].kind,
+                                    Id = add_info[i].id,
+                                    Count = add_info[i].count
+                                });
+                                break;
+                            }
+                        }
+                    }
+                }
             }
         }
+
         UserManager.Save_LocalUD(User_Inven.Path, m_userinven);
         return m_userinven.D_Inven;
     }

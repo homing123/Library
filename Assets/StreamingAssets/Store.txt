@@ -6,16 +6,10 @@
   "Purchase":[0,0,0],
   "Advertisement":[0,0,1],
   "Lock_Time":[30,0,30],
-  "Price_Kind_0":[1,1,0],
-  "Price_ID_0":[1,1,0],
-  "Price_Count_0":[500,300,0],
-  "Price_Kind_1":[0,0,0],
-  "Price_ID_1":[0,0,0],
-  "Price_Count_1":[0,0,0],
-  "Reward_Item_Kind_0":[1,100,100],
-  "Reward_Item_ID_0":[2,1,5],
-  "Reward_Item_Count_0":[10,2,20],
-  "Reward_Item_Kind_1":[0,100,0],
-  "Reward_Item_ID_1":[0,2,0],
-  "Reward_Item_Count_1":[0,1,0]
+  "Price_Kind":[1,1,0],
+  "Price_ID":[1,1,0],
+  "Price_Count":[500,300,0],
+  "Reward_Kind":[1,100,100],
+  "Reward_ID":[2,1,5],
+  "Reward_Count":[10,2,20]
 }

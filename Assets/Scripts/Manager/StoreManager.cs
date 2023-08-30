@@ -25,10 +25,7 @@ public class StoreManager : Manager<StoreManager>
             User_Store.m_UserStore.Buy_Action(price_info, ac_buy);
         }
     }
-    public void Buy_Advertisement(int advertisement, Action ac_buy)
-    {
-        //광고 완료시 ac_buy 호출
-    }
+    
     public async void Buy(int id, int count = 1)
     {
         if (count == 0)
@@ -43,7 +40,6 @@ public class StoreManager : Manager<StoreManager>
         else if (cur_store.Advertisement)
         {
             await AdManager.Instance.ShowAsync(AdManager.E_Adkind.Reward_Video);
-            Debug.Log("쇼에이싱크 다음");
         }
       
         var reward_info = await User_Store.m_UserStore.Buy(id, count);
@@ -73,8 +69,8 @@ public class User_Store : UserData_Server
     public const string Path = "Store";
     public static User_Store m_UserStore;
 
-    public List<Record> L_Purchase_Record = new List<Record>();
-    public Dictionary<int, StoreLock> D_StoreLock = new Dictionary<int, StoreLock>();
+    public List<Record> L_Purchase_Record = new List<Record>(); //결제상품 구매기록
+    public Dictionary<int, StoreLock> D_StoreLock = new Dictionary<int, StoreLock>(); //구매 제한시간
     public static Action ac_StoreChanged = () => { Debug.Log("StoreChanged Action"); };
     public class Record
     {
@@ -108,8 +104,16 @@ public class User_Store : UserData_Server
             //서버에서 있는지없는지 확인 후 없으면 생성해서 보내면 그거 받으면됨
         }
     }
+
+    /// <summary>
+    /// 구매함수
+    /// </summary>
+    /// <param name="id"></param>
+    /// <param name="count"></param>
+    /// <returns></returns>
     public async Task<(int kind, int id, int count)[]> Buy(int id, int count = 1)
     {
+        //구매시 인벤데이터, 랜덤박스데이터, 스토어데이터 변함
         if (UserManager.Use_Local)
         {
             var data = await LocalUser_Store.Buy(id, count);
@@ -127,6 +131,12 @@ public class User_Store : UserData_Server
             //server
         }
     }
+
+    /// <summary>
+    /// 가격 지불 후 함수실행
+    /// </summary>
+    /// <param name="price_info"></param>
+    /// <param name="ac_buy"></param>
     public async void Buy_Action((int kind, int id, int count) price_info, Action ac_buy)
     {
         if (UserManager.Use_Local)
@@ -143,6 +153,12 @@ public class User_Store : UserData_Server
 }
 public class LocalUser_Store
 {
+    /// <summary>
+    /// 구매함수
+    /// </summary>
+    /// <param name="id"></param>
+    /// <param name="count"></param>
+    /// <returns></returns>
     public static async Task<(Dictionary<int, User_Store.StoreLock> D_StoreLock, List<User_Store.Record> L_Purchase_Record, Dictionary<int,User_Inven.Inven> D_Inven, Dictionary<int,int> D_Randombox, (int kind, int id, int count)[] Reward_Info)> Buy(int id, int count = 1)
     {
         Debug.Log("구매");
@@ -150,11 +166,14 @@ public class LocalUser_Store
         User_Store m_userstore = UserManager.Load_LocalUD<User_Store>(User_Store.Path);
         StoreData cur_store = StoreData.Get(id);
 
-        var price_info = cur_store.Get_PriceInfo(count);
+        //가격정보 가져오기
+        var price_info = cur_store.L_PriceInfo.ToArray().ItemMulCount(count);
 
-        if (await LocalUser_Inven.CheckItemCount(price_info))
+        if (await LocalUser_Inven.CheckItemCount(price_info)) //가격 지불 가능한지 확인
         {
-            DateTime cur_time = await TimeManager.Instance.Cur_TimeAsync();
+            DateTime cur_time = await TimeManager.Instance.Cur_TimeAsync(); //현재시간 가져오기
+
+            //구매 시간제한 확인
             if (cur_store.Lock_Time != 0)
             {
                 if (m_userstore.isLock(id, cur_time))
@@ -166,6 +185,14 @@ public class LocalUser_Store
                     m_userstore.AddLockTime(id, cur_time.AddSeconds(cur_store.Lock_Time));
                 }
             }
+
+            //상품목록 생성 및 랜덤박스 오픈
+            var data = await LocalUser_Randombox.Open_Randombox(cur_store.L_RewardInfo.ToArray().ItemMulCount(count));
+
+            //가격 지불 및 획득
+            Dictionary<int, User_Inven.Inven> d_inven = await LocalUser_Inven.Add_Remove_byKind(data.reward_info, price_info);
+
+            //결제상품인지 확인
             if (cur_store.Purchase.IsNullOrEmptyOrN())
             {
                 m_userstore.L_Purchase_Record.Add(new User_Store.Record()
@@ -173,18 +200,7 @@ public class LocalUser_Store
                     Time = cur_time.ToString(),
                     ID = id
                 });
-            }
-
-
-            //가격 지불
-            await LocalUser_Inven.Remove_byKind(price_info);
-
-            //상품목록 생성 및 랜덤박스 오픈
-            var data = await LocalUser_Randombox.Open_Randombox(cur_store.Get_RewardInfo(count));
-
-            //획득
-            Dictionary<int,User_Inven.Inven> d_inven = await LocalUser_Inven.Add(data.reward_info);
-
+            } 
 
             UserManager.Save_LocalUD(User_Store.Path, m_userstore);
             Debug.Log("구매완료");
@@ -196,13 +212,18 @@ public class LocalUser_Store
         }
     }
 
+    /// <summary>
+    /// 구매 후 함수실행
+    /// </summary>
+    /// <param name="price_info"></param>
+    /// <returns></returns>
     public static async Task<Dictionary<int, User_Inven.Inven>> Buy((int kind, int id, int count) price_info)
     {
         await Task.Delay(GameManager.Instance.TaskDelay);
         if (await LocalUser_Inven.CheckItemCount(price_info.ToArray()))
         {
             //가격지불
-            Dictionary<int, User_Inven.Inven> d_inven = await LocalUser_Inven.Remove_byKind(price_info.ToArray());
+            Dictionary<int, User_Inven.Inven> d_inven = await LocalUser_Inven.Add_Remove_byKind(null, price_info.ToArray());
             return d_inven;
         }
         else
@@ -256,18 +277,12 @@ public class J_StoreData
     public string[] Purchase;
     public bool[] Advertisement;
     public int[] Lock_Time;
-    public int[] Price_Kind_0;
-    public int[] Price_ID_0;
-    public int[] Price_Count_0;
-    public int[] Price_Kind_1;
-    public int[] Price_ID_1;
-    public int[] Price_Count_1;
-    public int[] Reward_Item_Kind_0;
-    public int[] Reward_Item_ID_0;
-    public int[] Reward_Item_Count_0;
-    public int[] Reward_Item_Kind_1;
-    public int[] Reward_Item_ID_1;
-    public int[] Reward_Item_Count_1;
+    public int[] Price_Kind;
+    public int[] Price_ID;
+    public int[] Price_Count;
+    public int[] Reward_Kind;
+    public int[] Reward_ID;
+    public int[] Reward_Count;
 }
 public class StoreData
 {
@@ -280,30 +295,31 @@ public class StoreData
     public string Purchase;
     public bool Advertisement;
     public int Lock_Time;
-    public (int kind, int id, int count)[] Price_Info;
-    public (int kind, int id, int count)[] Reward_ItemInfo;
+    public List<(int kind, int id, int count)> L_PriceInfo = new List<(int kind, int id, int count)>();
+    public List<(int kind, int id, int count)> L_RewardInfo = new List<(int kind, int id, int count)>();
 
     public static void Data_DicSet(J_StoreData j_obj)
     {
         for (int i = 0; i < j_obj.ID.Length; i++)
         {
-            StoreData obj = new StoreData()
+            if (D_Data.ContainsKey(j_obj.ID[i]) == false)
             {
-                ID = j_obj.ID[i],
-                Type = j_obj.Type[i],
-                Title = j_obj.Title[i],
-                Description = j_obj.Description[i],
-                Purchase = j_obj.Purchase[i],
-                Advertisement = j_obj.Advertisement[i],
-                Lock_Time = j_obj.Lock_Time[i],
+                StoreData obj = new StoreData()
+                {
+                    ID = j_obj.ID[i],
+                    Type = j_obj.Type[i],
+                    Title = j_obj.Title[i],
+                    Description = j_obj.Description[i],
+                    Purchase = j_obj.Purchase[i],
+                    Advertisement = j_obj.Advertisement[i],
+                    Lock_Time = j_obj.Lock_Time[i],
+                };
+                D_Data.Add(obj.ID, obj);
+            }
 
-            };
-
-            obj.Price_Info = InvenManager.ToItemInfo(new int[] { j_obj.Price_Kind_0[i], j_obj.Price_Kind_1[i] }, new int[] { j_obj.Price_ID_0[i], j_obj.Price_ID_1[i] }, new int[] { j_obj.Price_Count_0[i], j_obj.Price_Count_1[i] });
-            obj.Reward_ItemInfo = InvenManager.ToItemInfo(new int[] { j_obj.Reward_Item_Kind_0[i], j_obj.Reward_Item_Kind_1[i] }, new int[] { j_obj.Reward_Item_ID_0[i], j_obj.Reward_Item_ID_1[i] }, new int[] { j_obj.Reward_Item_Count_0[i], j_obj.Reward_Item_Count_1[i] });
-
-            D_Data.Add(obj.ID, obj);
-
+            StoreData cur_store = D_Data[j_obj.ID[i]];
+            cur_store.L_PriceInfo.AddItemInfo(j_obj.Price_Kind[i], j_obj.Price_ID[i], j_obj.Price_Count[i]);
+            cur_store.L_RewardInfo.AddItemInfo(j_obj.Reward_Kind[i], j_obj.Reward_ID[i], j_obj.Reward_Count[i]);
         }
     }
 
@@ -344,34 +360,6 @@ public class StoreData
                 return false;
             }
         }
-    }
-
-    public (int,int,int)[] Get_PriceInfo(int count = 1)
-    {
-        var price_info = new (int, int, int)[Price_Info.Length];
-        for(int i = 0; i < Price_Info.Length; i++)
-        {
-            price_info[i] = (Price_Info[i].kind, Price_Info[i].id, Price_Info[i].count * count);
-        }
-        return price_info;
-    }
-    public (int,int,int)[] Get_RewardInfo(int count = 1)
-    {
-        var reward_info = new List<(int, int, int)>();
-        for (int i = 0; i < Reward_ItemInfo.Length; i++)
-        {
-            reward_info.Add((Reward_ItemInfo[i].kind, Reward_ItemInfo[i].id, Reward_ItemInfo[i].count * count));
-        }
-        return reward_info.ToArray();
-    }
-    public List<(int, int, int)> Get_RewardInfo_List(int count = 1)
-    {
-        var reward_info = new List<(int, int, int)>();
-        for (int i = 0; i < Reward_ItemInfo.Length; i++)
-        {
-            reward_info.Add((Reward_ItemInfo[i].kind, Reward_ItemInfo[i].id, Reward_ItemInfo[i].count * count));
-        }
-        return reward_info;
     }
 }
 #endregion

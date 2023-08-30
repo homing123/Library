@@ -152,6 +152,26 @@ public static class Ex_Define
             list.Add((kind, id, count));
         }
     }
+    public static (int kind, int id, int count)[] ItemMulCount(this (int kind, int id, int count)[] iteminfo, int count)
+    {
+        var result = new (int kind, int id, int count)[iteminfo.Length];
+        for (int i = 0; i < result.Length; i++)
+        {
+            result[i] = iteminfo[i];
+            result[i].count *= count;
+        }
+        return result;
+    }
+    public static (int kind, int id, int count, float per)[] RandomItemMulCount(this (int kind, int id, int count, float per)[] randomiteminfo, int count)
+    {
+        var result = new (int kind, int id, int count, float per)[randomiteminfo.Length];
+        for (int i = 0; i < result.Length; i++)
+        {
+            result[i] = randomiteminfo[i];
+            result[i].count *= count;
+        }
+        return result;
+    }
     public static int Get_Idx<TValue>(this Dictionary<int, TValue> dic)
     {
         int idx = 0;

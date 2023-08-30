@@ -99,6 +99,7 @@ public class LocalUser_Randombox
 
         return (l_reward_info.ToArray(), m_userrandombox.D_Randombox);
     }
+
     /// <summary>
     /// 인벤에서 랜덤상자 사용시 상자 제거 후 상자결과 획득
     /// </summary>
@@ -110,8 +111,9 @@ public class LocalUser_Randombox
         User_Randombox m_userrandombox = UserManager.Load_LocalUD<User_Randombox>(User_Randombox.Path);
         User_Inven m_userinven = UserManager.Load_LocalUD<User_Inven>(User_Inven.Path);
 
-        List<(int kind, int id, int count)> l_iteminfo = new List<(int kind, int id, int count)>();
+        List<(int kind, int id, int count)> l_rewardinfo = new List<(int kind, int id, int count)>();
 
+        //해당인벤키에 상자있는지 확인
         if (m_userinven.D_Inven.ContainsKey(inven_key) == false)
         {
             throw new Exception("Gacha_byInven Inven null : Inven_Key : " + inven_key);
@@ -123,33 +125,35 @@ public class LocalUser_Randombox
         }
 
         int box_id = m_userinven.D_Inven[inven_key].Id;
-        await LocalUser_Inven.Remove_byKey((inven_key, count).ToArray());
 
+        //갯수만큼 결과받기
         for (int i = 0; i < count; i++)
         {
-            l_iteminfo.Add(m_userrandombox.Get_RandomboxResult(box_id));
+            l_rewardinfo.Add(m_userrandombox.Get_RandomboxResult(box_id));
         }
 
-        int test = 0;
-        for (int i = 0; i < l_iteminfo.Count; i++)
+        //보상 목록에 상자 있을경우 상자 오픈
+        int loopCount = 0;
+        for (int i = 0; i < l_rewardinfo.Count; i++)
         {
-            if (l_iteminfo[i].kind == ItemData.RandomboxKind)
+            if (l_rewardinfo[i].kind == ItemData.RandomboxKind)
             {
-                for (int j = 0; j < l_iteminfo[i].count; i++)
+                for (int j = 0; j < l_rewardinfo[i].count; i++)
                 {
-                    test++;
-                    if (test > 1000)
+                    loopCount++;
+                    if (loopCount > 1000)
                     {
                         throw new Exception("Randombox Gacha has Infinity Loop ID : " + box_id + " Count : " + count);
                     }
-                    l_iteminfo.Add(m_userrandombox.Get_RandomboxResult(l_iteminfo[i].id));
+                    l_rewardinfo.Add(m_userrandombox.Get_RandomboxResult(l_rewardinfo[i].id));
                 }
-                l_iteminfo.RemoveAt(i);
+                l_rewardinfo.RemoveAt(i);
                 i--;
             }
         }
 
-        Dictionary<int, User_Inven.Inven> d_inven = await LocalUser_Inven.Add(l_iteminfo.ToArray());
+        //인벤에서 보상획득 및 상자 제거
+        Dictionary<int, User_Inven.Inven> d_inven = await LocalUser_Inven.Add_Remove_byKey(l_rewardinfo.ToArray(), (inven_key, count).ToArray());
 
         return (d_inven, m_userrandombox.D_Randombox);
     }
@@ -241,7 +245,7 @@ public class RandomBoxData
     static Dictionary<int, RandomBoxData> D_Data = new Dictionary<int, RandomBoxData>();
 
     public int ID;
-    public List<int> L_TypeKind;//타입지정
+    public List<int> L_TypeKind = new List<int>();//타입지정
     public List<(int kind, int id, int count, float per)> L_SingleInfo = new List<(int kind, int id, int count, float per)>(); //낱개지정
     public List<(int kind, int id, int count)> L_ExtraRewardInfo = new List<(int kind, int id, int count)>(); //추가보상 상품
     public List<(int kind, int id, int count)> L_FirstRewardInfo = new List<(int kind, int id, int count)>(); //첫뽑기시 상품
