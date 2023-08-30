@@ -44,6 +44,7 @@ public class InvenManager : Manager<InvenManager>
         }
         return l_info.ToArray();
     }
+  
     #region Test
 
     [SerializeField] int Test_Kind;
@@ -525,6 +526,45 @@ public class ItemData
                 return false;
             }
         }
+    }
+    public static (int kind, int id)[] GetItems_byKind(int kind, bool israndombox = false)
+    {
+        List<(int kind, int id)> l_items = new List<(int kind, int id)>();
+
+        foreach (ItemData itemdata in D_Data.Values)
+        {
+            if (itemdata.Kind == kind)
+            {
+                if (israndombox)
+                {
+                    if (itemdata.GachaLock == false)
+                    {
+                        l_items.Add((itemdata.Kind, itemdata.ID));
+                    }
+                }
+            }
+        }
+        return l_items.ToArray();
+    }
+
+    public static (int kind, int id, int count)[] GetItems_byKind_WithCount(int kind, bool israndombox = false)
+    {
+        List<(int kind, int id, int count)> l_items = new List<(int kind, int id, int count)>();
+
+        foreach (ItemData itemdata in D_Data.Values)
+        {
+            if (itemdata.Kind == kind)
+            {
+                if (israndombox)
+                {
+                    if (itemdata.GachaLock == false)
+                    {
+                        l_items.Add((itemdata.Kind, itemdata.ID, 1));
+                    }
+                }
+            }
+        }
+        return l_items.ToArray();
     }
 }
 

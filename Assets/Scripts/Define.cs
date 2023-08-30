@@ -138,6 +138,20 @@ public abstract class UserData_Local : UserData
 
 public static class Ex_Define
 {
+    public static void AddRandomInfo(this List<(int, int, int, float)> list, int kind, int id, int count, float per)
+    {
+        if (count != 0)
+        {
+            list.Add((kind, id, count, per));
+        }
+    }
+    public static void AddItemInfo(this List<(int, int, int)> list, int kind, int id, int count)
+    {
+        if (count != 0)
+        {
+            list.Add((kind, id, count));
+        }
+    }
     public static int Get_Idx<TValue>(this Dictionary<int, TValue> dic)
     {
         int idx = 0;

@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEditor;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using System.Diagnostics;
 public class Custom_Button : Editor
 {
     [MenuItem("Custom/Delete")]
@@ -86,7 +87,23 @@ public class Custom_Button : Editor
     }
 
 
-    
-    
+    [MenuItem("Custom/DataSheet")]
+    public static void Create_ChromeDataSheet()
+    {
+        string chromePath = @"C:\Program Files\Google\Chrome\Application\chrome.exe"; // 크롬 실행 파일 경로
+        string urlToOpen = "https://docs.google.com/spreadsheets/d/1k5lznq26tIqMJxt_r1gz5EfXuJr-DJcTn3M0C8gP8eY/edit#gid=0"; // 열고 싶은 URL
+
+        Process.Start(chromePath, urlToOpen);
+
+    }
+    [MenuItem("Custom/DataConverter")]
+    public static void Create_ChromeDataConverter()
+    {
+        string chromePath = @"C:\Program Files\Google\Chrome\Application\chrome.exe"; // 크롬 실행 파일 경로
+        string urlToOpen = "https://shancarter.github.io/mr-data-converter/"; // 열고 싶은 URL
+
+        Process.Start(chromePath, urlToOpen);
+
+    }
 }
 
