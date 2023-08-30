@@ -150,23 +150,24 @@ public class User_Quest : UserData_Server
         {
             case E_QuestState.None:
                 //수락 가능한지 확인 후 리턴
-                bool Acceptable_Item = false;
-                if (cur_quest.Accept_ItemCount == 0)
+                bool Acceptable_byItem = false;
+                if (cur_quest.L_AcceptItem.Empty() == false)
                 {
-                    Acceptable_Item = true;
+                    Acceptable_byItem = true;
                 }
                 else
                 {
-                    Acceptable_Item = InvenManager.Instance.CheckItemCount((cur_quest.Accept_ItemKind, cur_quest.Accept_ItemID, cur_quest.Accept_ItemCount).ToArray());
+                    var accept_items = cur_quest.L_AcceptItem.ToArray();
+                    Acceptable_byItem = InvenManager.Instance.CheckItemCount(accept_items);
                 }
 
-                bool Acceptable_Quest = false;
-                if (cur_quest.Accept_QuestID == 0 || m_UserQuest.UserQuest_State(cur_quest.Accept_QuestID) == E_QuestState.Complete)
+                bool Acceptable_byQuest = false;
+                if (cur_quest.AcceptQuest_ID == 0 || m_UserQuest.UserQuest_State(cur_quest.AcceptQuest_ID) == E_QuestState.Complete)
                 {
-                    Acceptable_Quest = true;
+                    Acceptable_byQuest = true;
                 }
 
-                if (Acceptable_Item && Acceptable_Quest)
+                if (Acceptable_byItem && Acceptable_byQuest)
                 {
                     return E_QuestState.Acceptable;
                 }
@@ -179,7 +180,8 @@ public class User_Quest : UserData_Server
             case E_QuestState.Completable:
             case E_QuestState.UnCompletable:
                 //완료 가능한지 확인 후 리턴
-                if (InvenManager.Instance.CheckItemCount((cur_quest.Mission_Kind, cur_quest.Mission_ID, cur_quest.Mission_Count).ToArray()))
+                var mission_item = cur_quest.L_MissionItem.ToArray();
+                if (InvenManager.Instance.CheckItemCount(mission_item))
                 {
                     return E_QuestState.Completable;
                 }
@@ -217,6 +219,7 @@ public class User_Quest : UserData_Server
     }
     public async Task<(int kind, int id, int count)[]> Complete(int[] id)
     {
+        //완료시 인벤, 랜덤박스, 퀘스트 데이터변경됨
         if (UserManager.Use_Local)
         {
             var data = await LocalUser_Quest.Complete(id);
@@ -237,72 +240,94 @@ public class User_Quest : UserData_Server
 
 public class LocalUser_Quest
 {
-    static async  Task<E_QuestState> Get_State(int id)
+    static async  Task<E_QuestState[]> Get_State(int[] id)
     {
         await Task.Delay(GameManager.Instance.TaskDelay);
         User_Quest m_userquest = UserManager.Load_LocalUD<User_Quest>(User_Quest.Path);
-        QuestData cur_quest = QuestData.Get(id);
-        if (cur_quest == null)
+
+        var arr_state = new E_QuestState[id.Length];
+        for (int i = 0; i < id.Length; i++) 
         {
-            return E_QuestState.None;
+            QuestData cur_quest = QuestData.Get(id[i]);
+            if (cur_quest == null)
+            {
+                arr_state[i] = E_QuestState.None;
+            }
+            else 
+            {
+                E_QuestState state = m_userquest.UserQuest_State(id[i]);
+
+                switch (state)
+                {
+                    case E_QuestState.None:
+                        //수락가능 조건 아이템 확인
+                        bool Acceptable_byItem = false;
+                        if (cur_quest.L_AcceptItem.Empty() == false)
+                        {
+                            Acceptable_byItem = true;
+                        }
+                        else
+                        {
+                            var accept_items = cur_quest.L_AcceptItem.ToArray();
+                            Acceptable_byItem = await LocalUser_Inven.CheckItemCount(accept_items);
+                        }
+                        //수락가능 조건 퀘스트 확인
+                        bool Acceptable_byQuest = false;
+                        if (cur_quest.AcceptQuest_ID == 0 || m_userquest.UserQuest_State(cur_quest.AcceptQuest_ID) == E_QuestState.Complete)
+                        {
+                            Acceptable_byQuest = true;
+                        }
+
+                        if (Acceptable_byItem && Acceptable_byQuest)
+                        {
+                            arr_state[i] = E_QuestState.Acceptable;
+                        }
+                        else
+                        {
+                            arr_state[i] = E_QuestState.UnAcceptable;
+                        }
+                        break;
+                    case E_QuestState.Complete:
+                        arr_state[i] = E_QuestState.Complete;
+                        break;
+                    case E_QuestState.Completable:
+                    case E_QuestState.UnCompletable:
+                        //완료 가능한지 확인 후 리턴
+                        var mission_item = cur_quest.L_MissionItem.ToArray();
+                        if (await LocalUser_Inven.CheckItemCount(mission_item))
+                        {
+                            arr_state[i] = E_QuestState.Completable;
+                        }
+                        else
+                        {
+                            arr_state[i] = E_QuestState.UnCompletable;
+                        }
+                        break;
+                    default:
+                        throw new Exception("QuestState case is empty : " + state);
+                }
+            }
         }
-        E_QuestState state = m_userquest.UserQuest_State(id);
-
-
-        switch (state)
-        {
-            case E_QuestState.None:
-                //수락 가능한지 확인 후 리턴
-                bool Acceptable_Item = false;
-                if (cur_quest.Accept_ItemCount == 0)
-                {
-                    Acceptable_Item = true;
-                }
-                else
-                {
-                    Acceptable_Item = await LocalUser_Inven.CheckItemCount( (cur_quest.Accept_ItemKind, cur_quest.Accept_ItemID, cur_quest.Accept_ItemCount).ToArray());
-                }
-
-                bool Acceptable_Quest = false;
-                if (cur_quest.Accept_QuestID == 0 || m_userquest.UserQuest_State(cur_quest.Accept_QuestID) == E_QuestState.Complete)
-                {
-                    Acceptable_Quest = true;
-                }
-
-                if (Acceptable_Item && Acceptable_Quest)
-                {
-                    return E_QuestState.Acceptable;
-                }
-                else
-                {
-                    return E_QuestState.UnAcceptable;
-                }
-            case E_QuestState.Complete:
-                return E_QuestState.Complete;
-            case E_QuestState.Completable:
-            case E_QuestState.UnCompletable:
-                //완료 가능한지 확인 후 리턴
-                if (await LocalUser_Inven.CheckItemCount((cur_quest.Mission_Kind, cur_quest.Mission_ID, cur_quest.Mission_Count).ToArray()))
-                {
-                    return E_QuestState.Completable;
-                }
-                else
-                {
-                    return E_QuestState.UnCompletable;
-                }
-        }
-
-        throw new Exception("QuestState case is empty : " + state);
+        return arr_state;
     }
 
+    /// <summary>
+    /// 수락
+    /// </summary>
+    /// <param name="id"></param>
+    /// <returns></returns>
     public static async Task<Dictionary<int, User_Quest.Quest>> Accept(int[] id)
     {
         await Task.Delay(GameManager.Instance.TaskDelay);
         User_Quest m_userquest = UserManager.Load_LocalUD<User_Quest>(User_Quest.Path);
+
+        //퀘스트들 현재 상태 받아오기
+        var arr_state = await Get_State(id);
+
+        //수락 처리
         for (int i = 0; i < id.Length; i++)
         {
-            E_QuestState state = await Get_State(id[i]);
-            if (state == E_QuestState.Acceptable)
+            if (arr_state[i] == E_QuestState.Acceptable)
             {
                 if (m_userquest.D_Quest.ContainsKey(id[i]))
                 {
@@ -316,13 +341,20 @@ public class LocalUser_Quest
             }
             else
             {
-                throw new Exception("State is not Acceptable : id " + id[i] + " ,state " + state);
+                throw new Exception("State is not Acceptable : id " + id[i] + " ,state " + arr_state[i]);
             }
         }
+
         UserManager.Save_LocalUD(User_Quest.Path, m_userquest);
         return m_userquest.D_Quest;
 
     }
+
+    /// <summary>
+    /// 퀘스트 취소 및 완료한것 제거
+    /// </summary>
+    /// <param name="id"></param>
+    /// <returns></returns>
     public static async Task<Dictionary<int, User_Quest.Quest>> Cancel(int[] id)
     {
         await Task.Delay(GameManager.Instance.TaskDelay);
@@ -334,15 +366,24 @@ public class LocalUser_Quest
         UserManager.Save_LocalUD(User_Quest.Path, m_userquest);
         return m_userquest.D_Quest;
     }
+
+    /// <summary>
+    /// 완료
+    /// </summary>
+    /// <param name="id"></param>
+    /// <returns></returns>
     public static async Task<(Dictionary<int, User_Quest.Quest> d_quest,Dictionary<int,User_Inven.Inven> d_inven, (int kind, int id, int count)[] reward_info, Dictionary<int,int> d_randombox)> Complete(int[] id)
     {
         await Task.Delay(GameManager.Instance.TaskDelay);
         User_Quest m_userquest = UserManager.Load_LocalUD<User_Quest>(User_Quest.Path);
         List<(int kind, int id, int count)> l_reward = new List<(int kind, int id, int count)>();
+        //상태 받아오기
+        var arr_state = await Get_State(id);
+
+        //완료처리
         for (int i = 0; i < id.Length; i++)
         {
-            E_QuestState state = await Get_State(id[i]);
-            if (state == E_QuestState.Completable)
+            if (arr_state[i] == E_QuestState.Completable)
             {
                 if (m_userquest.D_Quest.ContainsKey(id[i]))
                 {
@@ -353,14 +394,20 @@ public class LocalUser_Quest
                     m_userquest.D_Quest.Add(id[i], new User_Quest.Quest() { State = E_QuestState.Complete });
                 }
                 QuestData cur_quest = QuestData.Get(id[i]);
-                l_reward.Add(cur_quest.Reward_Info);
+
+                //완료보상목록에 추가
+                l_reward.Add(cur_quest.L_RewardItem);
             }
             else
             {
-                throw new Exception("State is not Completable : id " + id + " ,state " + state);
+                throw new Exception("State is not Completable : id " + id + " ,state " + arr_state[i]);
             }
         }
+
+        //랜덤박스 있을경우 오픈
         var data = await LocalUser_Randombox.Open_Randombox(l_reward.ToArray());
+
+        //보상획득 처리
         Dictionary<int, User_Inven.Inven> d_inven = await LocalUser_Inven.Add_Remove_byKind(data.reward_info, null);
 
         UserManager.Save_LocalUD(User_Quest.Path, m_userquest);
@@ -380,7 +427,6 @@ public static class Ex_Quest
             return E_QuestState.None;
         }
     }
-
 }
 #endregion
 #region Streaming Quest
@@ -391,16 +437,16 @@ public class J_QuestData
     public int[] Type;
     public int[] Title;
     public int[] Description;
-    public int[] Accept_ItemKind;
-    public int[] Accept_ItemID;
-    public int[] Accept_ItemCount;
-    public int[] Accept_QuestID;
+    public int[] AcceptItem_Kind;
+    public int[] AcceptItem_ID;
+    public int[] AcceptItem_Count;
+    public int[] AcceptQuest_ID;
     public int[] Mission_Kind; 
     public int[] Mission_ID;
     public int[] Mission_Count;
-    public int[] Reward_Kind_0; 
-    public int[] Reward_ID_0;
-    public int[] Reward_Count_0;
+    public int[] Reward_Kind; 
+    public int[] Reward_ID;
+    public int[] Reward_Count;
 }
 public class QuestData
 {
@@ -410,36 +456,33 @@ public class QuestData
     public int Type;
     public int Title;
     public int Description;
-    public int Accept_ItemKind;
-    public int Accept_ItemID;
-    public int Accept_ItemCount;
-    public int Accept_QuestID;
-    public int Mission_Kind;
-    public int Mission_ID;
-    public int Mission_Count;
-    public (int, int, int)[] Reward_Info;
+    public List<(int kind, int id, int count)> L_AcceptItem = new List<(int kind, int id, int count)>();
+    public int AcceptQuest_ID;
+    public List<(int kind, int id, int count)> L_MissionItem = new List<(int kind, int id, int count)>();
+    public List<(int kind, int id, int count)> L_RewardItem = new List<(int kind, int id, int count)>();
+
 
     public static void Data_DicSet(J_QuestData j_obj)
     {
         for (int i = 0; i < j_obj.ID.Length; i++)
         {
-            QuestData obj = new QuestData()
+            if(D_Data.ContainsKey(j_obj.ID[i]) == false)
             {
-                ID = j_obj.ID[i],
-                Type = j_obj.Type[i],
-                Title = j_obj.Title[i],
-                Description = j_obj.Description[i],
-                Accept_ItemKind = j_obj.Accept_ItemKind[i],
-                Accept_ItemID = j_obj.Accept_ItemID[i],
-                Accept_ItemCount = j_obj.Accept_ItemCount[i],
-                Accept_QuestID = j_obj.Accept_QuestID[i],
-                Mission_Kind = j_obj.Mission_Kind[i],
-                Mission_ID = j_obj.Mission_ID[i],
-                Mission_Count = j_obj.Mission_Count[i],
-            };
-            obj.Reward_Info = InvenManager.ToItemInfo(new int[] { j_obj.Reward_Kind_0[i] }, new int[] { j_obj.Reward_ID_0[i] }, new int[] { j_obj.Reward_Count_0[i] });
+                QuestData obj = new QuestData()
+                {
+                    ID = j_obj.ID[i],
+                    Type = j_obj.Type[i],
+                    Title = j_obj.Title[i],
+                    Description = j_obj.Description[i],
+                    AcceptQuest_ID = j_obj.AcceptQuest_ID[i],
+                };
+                D_Data.Add(obj.ID, obj);
+            }
 
-            D_Data.Add(obj.ID, obj);
+            QuestData cur_quest = D_Data[j_obj.ID[i]];
+            cur_quest.L_AcceptItem.AddItemInfo(j_obj.AcceptItem_Kind[i], j_obj.AcceptItem_ID[i], j_obj.AcceptItem_Count[i]);
+            cur_quest.L_MissionItem.AddItemInfo(j_obj.Mission_Kind[i], j_obj.Mission_ID[i], j_obj.Mission_Count[i]);
+            cur_quest.L_RewardItem.AddItemInfo(j_obj.Reward_Kind[i], j_obj.Reward_ID[i], j_obj.Reward_Count[i]);
         }
     }
 
