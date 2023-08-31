@@ -40,6 +40,10 @@ public class GameManager : MonoBehaviour
         temp = StoreManager.Instance;
         temp = RandomBoxManager.Instance;
         temp = AdManager.Instance;
+        temp = NetworkManager.Instance;
+        
+        //이 이후로 생성되는 유저데이터 클래스는 로딩목록에 추가되지않음 (json할때 생성해서 대입하기 때문에 그때 생성되는 애들은 로딩목록에 추가되면안됨)
+        LoadindStart = true;
 
         StartCoroutine(TimeManager.Instance.Get_CurTime());
         while(TimeManager.isCurTimeSet == false)
@@ -59,13 +63,23 @@ public class GameManager : MonoBehaviour
             yield return seconds;
         }
         Debug.Log("스트리밍 부르기 완료");
+        
         //로그인
+        if (GameSetting.Login)
+        {
+            StartCoroutine(LoginManager.Instance.LoginSequence());
 
-        //서버데이터
-        LoadindStart = true;
+            while (LoginManager.LoginSequence_Success == false)
+            {
+                yield return seconds;
+            }
+        }
+
+        //서버데이터 로드
         bool Serverdata_Loaded = false;
         UserManager.Load_Server(() => Serverdata_Loaded = true);
-        while(Serverdata_Loaded == false)
+
+        while (Serverdata_Loaded == false)
         {
             yield return seconds;
         }

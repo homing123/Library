@@ -105,5 +105,10 @@ public class Custom_Button : Editor
         Process.Start(chromePath, urlToOpen);
 
     }
+    [MenuItem("Custom/Binary")]
+    public static void CovertToBinary()
+    {
+        StreamingManager.ConvertTextFilesToBinary();
+    }
 }
 

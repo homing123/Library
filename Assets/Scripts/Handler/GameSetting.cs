@@ -9,6 +9,8 @@ public class GameSetting : MonoBehaviour
     [SerializeField] bool m_Cheat;
     [SerializeField] bool m_Ad;
     [SerializeField] E_AdSdk m_AdSdk;
+    [SerializeField] bool m_Login;
+
     public static E_AdSdk AdSdk
     {
         get
@@ -53,6 +55,17 @@ public class GameSetting : MonoBehaviour
                 Instance = FindObjectOfType<GameSetting>();
             }
             return Instance.m_Ad;
+        }
+    }
+    public static bool Login
+    {
+        get
+        {
+            if (Instance == null)
+            {
+                Instance = FindObjectOfType<GameSetting>();
+            }
+            return Instance.m_Login;
         }
     }
 

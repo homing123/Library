@@ -1,0 +1,14 @@
+{
+  "ID":[1,1],
+  "Type_Kind":[0,0],
+  "Single_Kind":[1,1],
+  "Single_ID":[1,2],
+  "Single_Count":[1000,100],
+  "Single_Per":[5,3],
+  "ExtraReward_Kind":[0,0],
+  "ExtraReward_ID":[0,0],
+  "ExtraReward_Count":[0,0],
+  "FirstReward_Kind":[0,0],
+  "FirstReward_ID":[0,0],
+  "FirstReward_Count":[0,0]
+}

@@ -22,7 +22,7 @@ public class AdManager : Manager<AdManager>
 
     public static bool isShow = false;
     public static bool isReward = false;
-    public I_AdSdk_Adapter i_Adapter;
+    public ADAdapter Cur_Adapter;
     public Action ac_Reward;
 
     public const int Ad_Count = 2;
@@ -40,7 +40,7 @@ public class AdManager : Manager<AdManager>
     {
         if (GameSetting.Ad == false)
         {
-            i_Adapter = null;
+            Cur_Adapter = null;
         }
         else
         {
@@ -74,18 +74,18 @@ public class AdManager : Manager<AdManager>
     }
     void Reload()
     {
-        if (i_Adapter != null)
+        if (Cur_Adapter != null)
         {
-            i_Adapter.Reload();
+            Cur_Adapter.Reload();
         }
     }
 
     public void Show(E_Adkind adkind, Action ac_reward = null)
     {
-        if (i_Adapter != null)
+        if (Cur_Adapter != null)
         {
             ac_Reward = ac_reward;
-            i_Adapter.Show(adkind);
+            Cur_Adapter.Show(adkind);
         }
         else
         {
@@ -95,9 +95,9 @@ public class AdManager : Manager<AdManager>
 
     public async Task<bool> ShowAsync(E_Adkind adkind)
     {
-        if (i_Adapter != null)
+        if (Cur_Adapter != null)
         {
-            i_Adapter.Show(adkind);
+            Cur_Adapter.Show(adkind);
             while (isShow)
             {
                 await Task.Delay(10);
@@ -113,9 +113,9 @@ public class AdManager : Manager<AdManager>
     }
     public bool isLoaded(E_Adkind adkind)
     {
-        if(i_Adapter != null)
+        if(Cur_Adapter != null)
         {
-            return i_Adapter.isLoaded(adkind);
+            return Cur_Adapter.isLoaded(adkind);
         }
         else
         {
@@ -132,7 +132,7 @@ public class AdManager : Manager<AdManager>
 }
 
 
-public abstract class I_AdSdk_Adapter
+public abstract class ADAdapter
 {
     public class Ad_Info 
     {
