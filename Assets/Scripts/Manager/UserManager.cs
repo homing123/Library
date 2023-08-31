@@ -32,22 +32,6 @@ public class UserManager
     }
     public static T Load_LocalUD<T>(string path)
     {
-        bool log = false;
-        if (path == "Time")
-        {
-            log = true;
-        }
-        path = Path.Combine(Application.persistentDataPath, path);
-        string data = File.ReadAllText(path);
-        if (log)
-        {
-            Debug.Log(data);
-        }
-        return JsonConvert.DeserializeObject<T>(data);
-    }
-    public static async Task<T> Load_LocalUDAsync<T>(string path)
-    {
-        await Task.Delay(GameManager.Instance.TaskDelay);
         path = Path.Combine(Application.persistentDataPath, path);
         string data = File.ReadAllText(path);
         return JsonConvert.DeserializeObject<T>(data);

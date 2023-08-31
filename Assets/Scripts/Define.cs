@@ -158,7 +158,7 @@ public static class Ex_Define
         for (int i = 0; i < result.Length; i++)
         {
             result[i] = iteminfo[i];
-            result[i].count *= count;
+            result[i].count = iteminfo[i].count * count;
         }
         return result;
     }
@@ -168,7 +168,7 @@ public static class Ex_Define
         for (int i = 0; i < result.Length; i++)
         {
             result[i] = randomiteminfo[i];
-            result[i].count *= count;
+            result[i].count = randomiteminfo[i].count * count;
         }
         return result;
     }

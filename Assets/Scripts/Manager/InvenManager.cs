@@ -3,6 +3,14 @@ using UnityEngine;
 using System;
 using System.Threading.Tasks;
 using System.IO;
+
+//ItemKind
+public enum E_ItemKind
+{
+    Money = 1,
+    SystemData = 2,
+    Randombox = 100
+}
 public class InvenManager : Manager<InvenManager>
 {
     private void Awake()
@@ -13,19 +21,15 @@ public class InvenManager : Manager<InvenManager>
             StreamingManager.Read_Data<J_ItemData>(StreamingManager.Get_StreamingPath(J_ItemData.Path), ItemData.Data_DicSet);
         }));
     }
-
-    public async Task Add((int kind, int id, int count)[] add_info)
+    public async Task Add_Remove_byKind((int kind, int id, int count)[] add_info, (int kind, int id, int count)[] remove_info)
     {
-        await User_Inven.m_UserInven.Add(add_info);
+        await User_Inven.m_UserInven.Add_Remove_byKind(add_info, remove_info);
     }
-    public async Task Remove_byKind((int kind, int id, int count)[] remove_info)
+    public async Task Add_Remove_byKey((int kind, int id, int count)[] add_info, (int key, int count)[] remove_info)
     {
-        await User_Inven.m_UserInven.Remove_byKind(remove_info);
+        await User_Inven.m_UserInven.Add_Remove_byKey(add_info, remove_info);
     }
-    public async Task Remove_byKey((int key, int count)[] remove_info)
-    {
-        await User_Inven.m_UserInven.Remove_byKey(remove_info);
-    }
+   
     public bool CheckItemCount((int kind, int id, int count)[] price_info)
     {
         return User_Inven.m_UserInven.CheckItemCount(price_info);
@@ -53,14 +57,14 @@ public class InvenManager : Manager<InvenManager>
     [ContextMenu("획득")]
     public void Test_Add()
     {
-        Add((Test_Kind, Test_ID, Test_Count).ToArray());
+        Add_Remove_byKind((Test_Kind, Test_ID, Test_Count).ToArray(), null);
     }
     [ContextMenu("제거")]
     public async void Test_Remove()
     {
         if (CheckItemCount((Test_Kind, Test_ID, Test_Count).ToArray()))
         {
-            await Remove_byKind((Test_Kind, Test_ID, Test_Count).ToArray());
+            await Add_Remove_byKind(null, (Test_Kind, Test_ID, Test_Count).ToArray());
         }
         else
         {
@@ -106,7 +110,7 @@ public class User_Inven : UserData_Server
         {
             if (UserManager.Exist_LocalUD(Path))
             {
-                var data = await UserManager.Load_LocalUDAsync<User_Inven>(Path);
+                var data = UserManager.Load_LocalUD<User_Inven>(Path);
                 D_Inven = data.D_Inven;
             }
             else
@@ -115,7 +119,7 @@ public class User_Inven : UserData_Server
                 D_Inven.Add(0, new Inven()
                 {
                     Kind = 1,
-                    Id = 0,
+                    Id = 1,
                     Count = 1000
                 });
                 UserManager.Save_LocalUD(Path, this);
@@ -127,12 +131,14 @@ public class User_Inven : UserData_Server
         }
     }
 
-    public async Task Add((int kind, int id, int count)[] add_info)
+    public async Task<(int kind, int id, int count)[]> Add_Remove_byKind((int kind, int id, int count)[] add_info, (int kind, int id, int count)[] remove_info)
     {
         if (UserManager.Use_Local)
         {
-            m_UserInven.D_Inven = await LocalUser_Inven.Add_Remove_byKind(add_info, null);
+            var data = await LocalUser_Inven.Add_Remove_byKind(add_info, remove_info);
+            m_UserInven.D_Inven = data.D_Inven;
             ac_InvenChanged?.Invoke();
+            return data.Replacement_Info;
         }
         else
         {
@@ -140,24 +146,15 @@ public class User_Inven : UserData_Server
         }
     }
 
-    public async Task Remove_byKind((int kind, int id, int count)[] remove_info)
+   
+    public async Task<(int kind, int id, int count)[]> Add_Remove_byKey((int kind, int id, int count)[] add_info, (int key, int count)[] remove_info)
     {
         if (UserManager.Use_Local)
         {
-            m_UserInven.D_Inven = await LocalUser_Inven.Add_Remove_byKind(null, remove_info);
+            var data = await LocalUser_Inven.Add_Remove_byKey(add_info, remove_info);
+            m_UserInven.D_Inven = data.D_Inven;
             ac_InvenChanged?.Invoke();
-        }
-        else
-        {
-            //server
-        }
-    }
-    public async Task Remove_byKey((int key, int count)[] remove_info)
-    {
-        if (UserManager.Use_Local)
-        {
-            m_UserInven.D_Inven = await LocalUser_Inven.Add_Remove_byKey(null, remove_info);
-            ac_InvenChanged?.Invoke();
+            return data.Replacement_Info;
         }
         else
         {
@@ -218,7 +215,7 @@ public class LocalUser_Inven
         }
         return true;
     }
-    public static async Task<Dictionary<int, User_Inven.Inven>> Add_Remove_byKind((int kind, int id, int count)[] add_info, (int kind, int id, int count)[] remove_info)
+    public static async Task<(Dictionary<int, User_Inven.Inven> D_Inven, (int kind, int id, int count)[] Replacement_Info)> Add_Remove_byKind((int kind, int id, int count)[] add_info, (int kind, int id, int count)[] remove_info)
     {
         await Task.Delay(GameManager.Instance.TaskDelay);
         User_Inven m_userinven = UserManager.Load_LocalUD<User_Inven>(User_Inven.Path);
@@ -266,80 +263,16 @@ public class LocalUser_Inven
             }
         }
 
+        (int kind, int id, int count)[] replacement_info = null;
         if (add_info.Empty() == false)
         {
-            //획득처리
-            for (int i = 0; i < add_info.Length; i++)
-            {
-                ItemData item = ItemData.Get((add_info[i].kind, add_info[i].id));
-                if (item.Overlap_Size == 0)
-                {
-                    if (m_userinven.Find_Addable(add_info[i].kind, add_info[i].id, out inven))
-                    {
-                        inven.Count += add_info[i].count;
-                    }
-                    else
-                    {
-                        m_userinven.D_Inven.Add(m_userinven.D_Inven.Get_Idx(), new User_Inven.Inven()
-                        {
-                            Kind = add_info[i].kind,
-                            Id = add_info[i].id,
-                            Count = add_info[i].count
-                        });
-                    }
-                }
-                else
-                {
-                    while (true)
-                    {
-                        bool Find_Addable_is_None = false; //추가가능한게 더이상 없는경우
-                        if (Find_Addable_is_None == false && m_userinven.Find_Addable(add_info[i].kind, add_info[i].id, out inven))
-                        {
-                            if (inven.Count + add_info[i].count > item.Overlap_Size)
-                            {
-                                add_info[i].count -= item.Overlap_Size - inven.Count;
-                                inven.Count = item.Overlap_Size;
-                            }
-                            else
-                            {
-                                inven.Count = inven.Count + add_info[i].count;
-                                break;
-                            }
-                        }
-                        else
-                        {
-                            Find_Addable_is_None = true;
-                            if (add_info[i].count > item.Overlap_Size)
-                            {
-                                add_info[i].count -= item.Overlap_Size;
-                                m_userinven.D_Inven.Add(m_userinven.D_Inven.Get_Idx(), new User_Inven.Inven()
-                                {
-                                    Kind = add_info[i].kind,
-                                    Id = add_info[i].id,
-                                    Count = item.Overlap_Size
-                                });
-
-                            }
-                            else
-                            {
-                                m_userinven.D_Inven.Add(m_userinven.D_Inven.Get_Idx(), new User_Inven.Inven()
-                                {
-                                    Kind = add_info[i].kind,
-                                    Id = add_info[i].id,
-                                    Count = add_info[i].count
-                                });
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
+            m_userinven.Add(add_info, out replacement_info);
         }
 
         UserManager.Save_LocalUD(User_Inven.Path, m_userinven);
-        return m_userinven.D_Inven;
+        return (m_userinven.D_Inven, replacement_info);
     }
-    public static async Task<Dictionary<int, User_Inven.Inven>> Add_Remove_byKey((int kind, int id, int count)[] add_info, (int key, int count)[] remove_info)
+    public static async Task<(Dictionary<int, User_Inven.Inven> D_Inven, (int kind, int id, int count)[] Replacement_Info)> Add_Remove_byKey((int kind, int id, int count)[] add_info, (int key, int count)[] remove_info)
     {
         await Task.Delay(GameManager.Instance.TaskDelay);
         User_Inven m_userinven = UserManager.Load_LocalUD<User_Inven>(User_Inven.Path);
@@ -372,78 +305,14 @@ public class LocalUser_Inven
             }
         }
 
+        (int kind, int id, int count)[] replacement_info = null;
         if (add_info.Empty() == false)
         {
-            //획득처리
-            for (int i = 0; i < add_info.Length; i++)
-            {
-                ItemData item = ItemData.Get((add_info[i].kind, add_info[i].id));
-                if (item.Overlap_Size == 0)
-                {
-                    if (m_userinven.Find_Addable(add_info[i].kind, add_info[i].id, out inven))
-                    {
-                        inven.Count += add_info[i].count;
-                    }
-                    else
-                    {
-                        m_userinven.D_Inven.Add(m_userinven.D_Inven.Get_Idx(), new User_Inven.Inven()
-                        {
-                            Kind = add_info[i].kind,
-                            Id = add_info[i].id,
-                            Count = add_info[i].count
-                        });
-                    }
-                }
-                else
-                {
-                    while (true)
-                    {
-                        bool Find_Addable_is_None = false; //추가가능한게 더이상 없는경우
-                        if (Find_Addable_is_None == false && m_userinven.Find_Addable(add_info[i].kind, add_info[i].id, out inven))
-                        {
-                            if (inven.Count + add_info[i].count > item.Overlap_Size)
-                            {
-                                add_info[i].count -= item.Overlap_Size - inven.Count;
-                                inven.Count = item.Overlap_Size;
-                            }
-                            else
-                            {
-                                inven.Count = inven.Count + add_info[i].count;
-                                break;
-                            }
-                        }
-                        else
-                        {
-                            Find_Addable_is_None = true;
-                            if (add_info[i].count > item.Overlap_Size)
-                            {
-                                add_info[i].count -= item.Overlap_Size;
-                                m_userinven.D_Inven.Add(m_userinven.D_Inven.Get_Idx(), new User_Inven.Inven()
-                                {
-                                    Kind = add_info[i].kind,
-                                    Id = add_info[i].id,
-                                    Count = item.Overlap_Size
-                                });
-
-                            }
-                            else
-                            {
-                                m_userinven.D_Inven.Add(m_userinven.D_Inven.Get_Idx(), new User_Inven.Inven()
-                                {
-                                    Kind = add_info[i].kind,
-                                    Id = add_info[i].id,
-                                    Count = add_info[i].count
-                                });
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
+            m_userinven.Add(add_info, out replacement_info);
         }
 
         UserManager.Save_LocalUD(User_Inven.Path, m_userinven);
-        return m_userinven.D_Inven;
+        return (m_userinven.D_Inven,replacement_info);
     }
 }
 public static class Ex_Inven
@@ -511,7 +380,7 @@ public static class Ex_Inven
         {
             if (inven.Kind == kind && inven.Id == id)
             {
-                if (ItemData.Get((kind, id)).Overlap_Size == 0 || ItemData.Get((kind, id)).Overlap_Size > inven.Count)
+                if (ItemData.Get((kind, id)).Max_Size == 0 || ItemData.Get((kind, id)).Max_Size > inven.Count)
                 {
                     out_inven = inven;
                     return true;
@@ -520,6 +389,209 @@ public static class Ex_Inven
         }
         out_inven = null;
         return false;
+    }
+
+    public static void Add(this User_Inven m_userinven, (int kind, int id, int count)[] add_info, out (int kind, int id, int count)[] replacement_info)
+    {
+        //획득처리
+        User_Inven.Inven inven;
+        List<(int kind, int id, int count)> l_replacement_info = new List<(int kind, int id, int count)>(); //대체상품으로 바뀐 아이템들
+
+        for (int i = 0; i < add_info.Length; i++)
+        {
+            ItemData item = ItemData.Get((add_info[i].kind, add_info[i].id));
+
+            switch ((E_ItemKind)add_info[i].kind)
+            {
+                //케이스별로 차이가 있을경우
+                default:
+                    //획득 제한이 없는 경우
+                    if (item.Max_Size == 0)
+                    {
+                        //현재 인벤에 같은종류가 있는경우
+                        if (m_userinven.Find_Addable(add_info[i].kind, add_info[i].id, out inven))
+                        {
+                            inven.Count += add_info[i].count;
+                        }
+                        else
+                        {
+                            m_userinven.D_Inven.Add(m_userinven.D_Inven.Get_Idx(), new User_Inven.Inven()
+                            {
+                                Kind = add_info[i].kind,
+                                Id = add_info[i].id,
+                                Count = add_info[i].count
+                            });
+                        }
+                    }
+                    else
+                    {
+                        int Cur_Count = add_info[i].count;
+                        switch ((ItemData.E_MaxKind)item.Max_Kind)
+                        {
+                            case ItemData.E_MaxKind.NextSlot:
+                                //추가가능한 슬롯 (빈슬롯 제외) 이 없는지 여부 (추가가능한게 없는데 계속 찾지않기위해서)
+
+                                bool Find_Addable_isNone = false;
+                                //전부 다 채워넣을때 까지 반복
+                                while (true)
+                                {
+                                    if (Find_Addable_isNone == false)
+                                    {
+                                        if (m_userinven.Find_Addable(add_info[i].kind, add_info[i].id, out inven))
+                                        {
+                                            //추가 가능한 슬롯이 있는 경우
+                                            if (inven.Count + Cur_Count > item.Max_Size)
+                                            {
+                                                Cur_Count -= item.Max_Size - inven.Count;
+                                                inven.Count = item.Max_Size;
+                                            }
+                                            else
+                                            {
+                                                inven.Count = inven.Count + Cur_Count;
+                                                Cur_Count = 0;
+                                                break;
+                                            }
+                                        }
+                                        else
+                                        {
+                                            Find_Addable_isNone = true;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        //추가 가능한 슬롯이 없는 경우 새 슬롯에 넣음
+                                        if (Cur_Count > item.Max_Size)
+                                        {
+                                            Cur_Count -= item.Max_Size;
+                                            m_userinven.D_Inven.Add(m_userinven.D_Inven.Get_Idx(), new User_Inven.Inven()
+                                            {
+                                                Kind = add_info[i].kind,
+                                                Id = add_info[i].id,
+                                                Count = item.Max_Size
+                                            });
+
+                                        }
+                                        else
+                                        {
+                                            m_userinven.D_Inven.Add(m_userinven.D_Inven.Get_Idx(), new User_Inven.Inven()
+                                            {
+                                                Kind = add_info[i].kind,
+                                                Id = add_info[i].id,
+                                                Count = Cur_Count
+                                            });
+                                            Cur_Count = 0;
+                                            break;
+                                        }
+                                    }
+                                }
+                                break;
+                            case ItemData.E_MaxKind.ReplacementItem:
+                                if (m_userinven.Find_Addable(add_info[i].kind, add_info[i].id, out inven))
+                                {
+                                    //추가 가능한 슬롯이 있는 경우
+                                    if (inven.Count + Cur_Count > item.Max_Size)
+                                    {
+                                        Cur_Count -= item.Max_Size - inven.Count;
+                                        inven.Count = item.Max_Size;
+                                    }
+                                    else
+                                    {
+                                        inven.Count = inven.Count + Cur_Count;
+                                        Cur_Count = 0;
+                                    }
+                                }
+                                else
+                                {
+                                    //추가 가능한 슬롯이 없는 경우 새 슬롯에 넣음
+                                    if (Cur_Count > item.Max_Size)
+                                    {
+                                        Cur_Count -= item.Max_Size;
+                                        m_userinven.D_Inven.Add(m_userinven.D_Inven.Get_Idx(), new User_Inven.Inven()
+                                        {
+                                            Kind = add_info[i].kind,
+                                            Id = add_info[i].id,
+                                            Count = item.Max_Size
+                                        });
+                                    }
+                                    else
+                                    {
+                                        m_userinven.D_Inven.Add(m_userinven.D_Inven.Get_Idx(), new User_Inven.Inven()
+                                        {
+                                            Kind = add_info[i].kind,
+                                            Id = add_info[i].id,
+                                            Count = Cur_Count
+                                        });
+                                        Cur_Count = 0;
+                                    }
+                                }
+
+                                //대체되어야할 아이템 추가
+                                if(Cur_Count > 0)
+                                {
+                                    l_replacement_info.Add((add_info[i].kind, add_info[i].id, Cur_Count));
+                                }
+                                break;
+                        }
+                       
+                    }
+                    break;
+            }   
+        }
+
+        //대체상품 처리
+        replacement_info = l_replacement_info.ToArray();
+
+        List<(int kind, int id, int count)> l_replacement_add_info = new List<(int kind, int id, int count)>(); //대체획득상품 아이템 (획득할 아이템)
+
+        //대체획득상품 목록화 (대체상품 키가 없는값이거나, 대체상품이 획득갯수 제한이 있는경우 오류)
+        for(int i = 0; i < l_replacement_info.Count; i++)
+        {
+            ItemData cur_item = ItemData.Get((l_replacement_info[i].kind, l_replacement_info[i].id));
+
+            if (cur_item.L_ReplacementItem.Count == 0)
+            {
+                throw new Exception($"Cur Item Replacement Item is Null : Item Key ( kind : {cur_item.Kind}, id : {cur_item.ID} )");
+            }
+            var arr_ReplacementItem = cur_item.L_ReplacementItem.ToArray().ItemMulCount(l_replacement_info[i].count);
+
+            for (int j = 0; j < arr_ReplacementItem.Length; j++) 
+            {
+                ItemData cur_replacement_item;
+                if (ItemData.Get((cur_item.L_ReplacementItem[j].kind, cur_item.L_ReplacementItem[j].id), out cur_replacement_item))
+                {
+                    if (cur_replacement_item.Max_Size != 0)
+                    {
+                        throw new Exception($"Replacement Item's max size must be 0! Replacement Item Key ( kind : {cur_item.L_ReplacementItem[j].kind}, id : {cur_item.L_ReplacementItem[j].id} )");
+                    }
+                    else
+                    {
+                        l_replacement_add_info.Add(arr_ReplacementItem[j]);
+                    }
+                }
+                else
+                {
+                    throw new Exception($"Replacement Item Key is Null : Item Key ( kind : {cur_item.Kind}, id : {cur_item.ID} ), Replacement Item Key ( kind : {cur_item.L_ReplacementItem[j].kind}, id : {cur_item.L_ReplacementItem[j].id} )");
+                }
+            }
+        }
+
+        //대체획득 상품 목록 획득
+        for (int i = 0; i < l_replacement_add_info.Count; i++)
+        {
+            if (m_userinven.Find_Addable(l_replacement_add_info[i].kind, l_replacement_add_info[i].id, out inven))
+            {
+                inven.Count += l_replacement_add_info[i].count;
+            }
+            else
+            {
+                m_userinven.D_Inven.Add(m_userinven.D_Inven.Get_Idx(), new User_Inven.Inven()
+                {
+                    Kind = l_replacement_add_info[i].kind,
+                    Id = l_replacement_add_info[i].id,
+                    Count = l_replacement_add_info[i].count
+                });
+            }
+        }
     }
 }
 
@@ -531,39 +603,67 @@ public class J_ItemData
 
     public int[] Kind;
     public int[] ID;
-    public bool[] GachaLock;
-    public int[] Overlap_Size;
     public int[] Name;
+    public int[] Description;
+    public bool[] GachaLock;
+
+    public int[] Max_Size;
+    public int[] Max_Kind;
+
+    public int[] Replacement_Kind;
+    public int[] Replacement_ID;
+    public int[] Replacement_Count;
 
 
 }
 public class ItemData
 {
-    public const int MoneyKind = 1;
-    public static readonly (int kind, int id) AttendanceQuest_Count = (2, 2);
-    public const int RandomboxKind = 100;
+    //MaxKind
+    public enum E_MaxKind
+    {
+        NextSlot = 1,
+        ReplacementItem = 2,
+    }
+
+   
+
+    public const int AttendanceQuest_Count_ID = 2;
 
     static Dictionary<(int kind, int id), ItemData> D_Data = new Dictionary<(int kind, int id), ItemData>();
 
     public int Kind;
     public int ID;
-    public bool GachaLock;
-    public int Overlap_Size;
     public int Name;
+    public int Description;
+    public bool GachaLock;
+
+    public int Max_Size;
+    public int Max_Kind;
+
+    public List<(int kind, int id, int count)> L_ReplacementItem = new List<(int kind, int id, int count)>();
 
     public static void Data_DicSet(J_ItemData j_obj)
     {
         for (int i = 0; i < j_obj.ID.Length; i++)
         {
-            ItemData obj = new ItemData()
+            var data_key = (j_obj.Kind[i], j_obj.ID[i]);
+            if(D_Data.ContainsKey(data_key) == false)
             {
-                Kind = j_obj.Kind[i],
-                ID = j_obj.ID[i],
-                GachaLock = j_obj.GachaLock[i],
-                Overlap_Size = j_obj.Overlap_Size[i],
-                Name = j_obj.Name[i]
-            };
-            D_Data.Add((obj.Kind, obj.ID), obj);
+                ItemData obj = new ItemData()
+                {
+                    Kind = j_obj.Kind[i],
+                    ID = j_obj.ID[i],
+                    Name = j_obj.Name[i],
+                    Description = j_obj.Description[i],
+                    GachaLock = j_obj.GachaLock[i],
+                    Max_Size = j_obj.Max_Size[i],
+                    Max_Kind = j_obj.Max_Kind[i]
+                }; 
+                D_Data.Add(data_key, obj);
+            }
+
+            ItemData cur_item = D_Data[data_key];
+            cur_item.L_ReplacementItem.AddItemInfo(j_obj.Replacement_Kind[i], j_obj.Replacement_ID[i], j_obj.Replacement_Count[i]);
         }
     }
 

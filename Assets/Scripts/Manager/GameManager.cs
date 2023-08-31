@@ -26,7 +26,7 @@ public class GameManager : MonoBehaviour
     }
     void Start()
     {
-        //StartCoroutine(LoadingStart());
+        StartCoroutine(LoadingStart());
     }
     IEnumerator LoadingStart()
     {

@@ -41,7 +41,7 @@ public class User_Randombox : UserData_Server
         {
             if (UserManager.Exist_LocalUD(Path))
             {
-                var data = await UserManager.Load_LocalUDAsync<User_Randombox>(Path);
+                var data = UserManager.Load_LocalUD<User_Randombox>(Path);
                 D_Randombox = data.D_Randombox;
             }
             else
@@ -76,7 +76,7 @@ public class LocalUser_Randombox
         int loopCount = 0; //무한루프 방지
         for (int i = 0; i < item_info.Length; i++)
         {
-            if (item_info[i].kind == ItemData.RandomboxKind)
+            if (item_info[i].kind == (int)E_ItemKind.Randombox)
             {
                 for (int j = 0; j < item_info[i].count; j++)
                 {
@@ -104,7 +104,7 @@ public class LocalUser_Randombox
     /// 인벤에서 랜덤상자 사용시 상자 제거 후 상자결과 획득
     /// </summary>
     /// <returns></returns>
-    public static async Task<(Dictionary<int, User_Inven.Inven> d_inven, Dictionary<int, int> d_randombox)> Gacha_byInven(int inven_key, int count)
+    public static async Task<(Dictionary<int, User_Inven.Inven> d_inven, Dictionary<int, int> d_randombox, (int kind, int id, int count)[] Replacement_Info)> Gacha_byInven(int inven_key, int count)
     {
         await Task.Delay(GameManager.Instance.TaskDelay);
 
@@ -118,7 +118,7 @@ public class LocalUser_Randombox
         {
             throw new Exception("Gacha_byInven Inven null : Inven_Key : " + inven_key);
         }
-        else if (m_userinven.D_Inven[inven_key].Count < count || m_userinven.D_Inven[inven_key].Kind != ItemData.RandomboxKind)
+        else if (m_userinven.D_Inven[inven_key].Count < count || m_userinven.D_Inven[inven_key].Kind != (int)E_ItemKind.Randombox)
         {
             User_Inven.Inven inven = m_userinven.D_Inven[inven_key];
             throw new Exception("Gacha_byInven Inven Error : Inven_Key : " + inven_key + " Count : " + count + " ( Inven_kind : " + inven.Kind + " Inven_id : " + inven.Id + " Inven_Count : " + inven.Count + " )");
@@ -136,7 +136,7 @@ public class LocalUser_Randombox
         int loopCount = 0;
         for (int i = 0; i < l_rewardinfo.Count; i++)
         {
-            if (l_rewardinfo[i].kind == ItemData.RandomboxKind)
+            if (l_rewardinfo[i].kind == (int)E_ItemKind.Randombox)
             {
                 for (int j = 0; j < l_rewardinfo[i].count; i++)
                 {
@@ -153,9 +153,9 @@ public class LocalUser_Randombox
         }
 
         //인벤에서 보상획득 및 상자 제거
-        Dictionary<int, User_Inven.Inven> d_inven = await LocalUser_Inven.Add_Remove_byKey(l_rewardinfo.ToArray(), (inven_key, count).ToArray());
+        var inven_add_data = await LocalUser_Inven.Add_Remove_byKey(l_rewardinfo.ToArray(), (inven_key, count).ToArray());
 
-        return (d_inven, m_userrandombox.D_Randombox);
+        return (inven_add_data.D_Inven, m_userrandombox.D_Randombox, inven_add_data.Replacement_Info);
     }
 }
 public static class Ex_Randombox
@@ -369,7 +369,7 @@ public class RandomBoxData
         //랜덤 리스트에 랜덤박스있으면 해당박스의 결과를 포함
         for (int i = 0; i < random_info.Count; i++)
         {
-            if (random_info[i].kind == ItemData.RandomboxKind)
+            if (random_info[i].kind == (int)E_ItemKind.Randombox)
             {
                 float cur_per = random_info[i].per;
                 RandomBoxData info_box = RandomBoxData.Get(random_info[i].id);

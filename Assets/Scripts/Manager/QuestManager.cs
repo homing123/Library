@@ -28,7 +28,7 @@ public class QuestManager : Manager<QuestManager>
     {
         if (Get_State(Attendance_Quest.Length - 1) == E_QuestState.Complete)
         {
-            await InvenManager.Instance.Remove_byKind((ItemData.AttendanceQuest_Count.kind, ItemData.AttendanceQuest_Count.id, 7).ToArray());
+            await InvenManager.Instance.Add_Remove_byKind(null, ((int)E_ItemKind.SystemData, ItemData.AttendanceQuest_Count_ID, 7).ToArray());
             await Cancel(Attendance_Quest);
             await Accept(Attendance_Quest);
         }
@@ -115,7 +115,7 @@ public class User_Quest : UserData_Server
         {
             if (UserManager.Exist_LocalUD(Path))
             {
-                var data = await UserManager.Load_LocalUDAsync<User_Quest>(Path);
+                var data = UserManager.Load_LocalUD<User_Quest>(Path);
                 D_Quest = data.D_Quest;
             }
             else
@@ -372,7 +372,7 @@ public class LocalUser_Quest
     /// </summary>
     /// <param name="id"></param>
     /// <returns></returns>
-    public static async Task<(Dictionary<int, User_Quest.Quest> d_quest,Dictionary<int,User_Inven.Inven> d_inven, (int kind, int id, int count)[] reward_info, Dictionary<int,int> d_randombox)> Complete(int[] id)
+    public static async Task<(Dictionary<int, User_Quest.Quest> d_quest,Dictionary<int,User_Inven.Inven> d_inven, (int kind, int id, int count)[] reward_info, Dictionary<int,int> d_randombox, (int kind, int id, int count)[] Replacement_Info)> Complete(int[] id)
     {
         await Task.Delay(GameManager.Instance.TaskDelay);
         User_Quest m_userquest = UserManager.Load_LocalUD<User_Quest>(User_Quest.Path);
@@ -408,10 +408,10 @@ public class LocalUser_Quest
         var data = await LocalUser_Randombox.Open_Randombox(l_reward.ToArray());
 
         //∫∏ªÛ»πµÊ √≥∏Æ
-        Dictionary<int, User_Inven.Inven> d_inven = await LocalUser_Inven.Add_Remove_byKind(data.reward_info, null);
+        var inven_change_data = await LocalUser_Inven.Add_Remove_byKind(data.reward_info, null);
 
         UserManager.Save_LocalUD(User_Quest.Path, m_userquest);
-        return (m_userquest.D_Quest, d_inven, data.reward_info, data.d_randombox);
+        return (m_userquest.D_Quest, inven_change_data.D_Inven, data.reward_info, data.d_randombox, inven_change_data.Replacement_Info);
     }
 }
 public static class Ex_Quest

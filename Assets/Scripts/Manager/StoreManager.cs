@@ -42,13 +42,19 @@ public class StoreManager : Manager<StoreManager>
             await AdManager.Instance.ShowAsync(AdManager.E_Adkind.Reward_Video);
         }
       
-        var reward_info = await User_Store.m_UserStore.Buy(id, count);
+        var buy_result = await User_Store.m_UserStore.Buy(id, count);
 
 
         Debug.Log("구매 보상 : ");
-        for (int i = 0; i < reward_info.Length; i++)
+        for (int i = 0; i < buy_result.Reward_Info.Length; i++)
         {
-            Debug.Log(" kind : " + reward_info[i].kind + " id : " + reward_info[i].id + " count : " + reward_info[i].count);
+            Debug.Log(" kind : " + buy_result.Reward_Info[i].kind + " id : " + buy_result.Reward_Info[i].id + " count : " + buy_result.Reward_Info[i].count);
+        }
+
+        Debug.Log("대체된 보상 : ");
+        for (int i = 0; i < buy_result.Replacement_Info.Length; i++)
+        {
+            Debug.Log(" kind : " + buy_result.Replacement_Info[i].kind + " id : " + buy_result.Replacement_Info[i].id + " count : " + buy_result.Replacement_Info[i].count);
         }
         //연출
     }
@@ -88,7 +94,7 @@ public class User_Store : UserData_Server
         {
             if (UserManager.Exist_LocalUD(Path))
             {
-                var data = await UserManager.Load_LocalUDAsync<User_Store>(Path);
+                var data = UserManager.Load_LocalUD<User_Store>(Path);
                 L_Purchase_Record = data.L_Purchase_Record;
                 D_StoreLock = data.D_StoreLock;
             }
@@ -111,7 +117,7 @@ public class User_Store : UserData_Server
     /// <param name="id"></param>
     /// <param name="count"></param>
     /// <returns></returns>
-    public async Task<(int kind, int id, int count)[]> Buy(int id, int count = 1)
+    public async Task<((int kind, int id, int count)[] Reward_Info, (int kind, int id, int count)[] Replacement_Info)> Buy(int id, int count = 1)
     {
         //구매시 인벤데이터, 랜덤박스데이터, 스토어데이터 변함
         if (UserManager.Use_Local)
@@ -124,7 +130,7 @@ public class User_Store : UserData_Server
             User_Inven.ac_InvenChanged?.Invoke();
             User_Randombox.m_UserRandombox.D_Randombox = data.D_Randombox;
             User_Randombox.ac_RandomboxChanged?.Invoke();
-            return data.Reward_Info;
+            return (data.Reward_Info, data.Replacement_Info);
         }
         else
         {
@@ -159,7 +165,7 @@ public class LocalUser_Store
     /// <param name="id"></param>
     /// <param name="count"></param>
     /// <returns></returns>
-    public static async Task<(Dictionary<int, User_Store.StoreLock> D_StoreLock, List<User_Store.Record> L_Purchase_Record, Dictionary<int,User_Inven.Inven> D_Inven, Dictionary<int,int> D_Randombox, (int kind, int id, int count)[] Reward_Info)> Buy(int id, int count = 1)
+    public static async Task<(Dictionary<int, User_Store.StoreLock> D_StoreLock, List<User_Store.Record> L_Purchase_Record, Dictionary<int,User_Inven.Inven> D_Inven, Dictionary<int,int> D_Randombox, (int kind, int id, int count)[] Reward_Info, (int kind, int id, int count)[] Replacement_Info)> Buy(int id, int count = 1)
     {
         Debug.Log("구매");
         await Task.Delay(GameManager.Instance.TaskDelay);
@@ -190,7 +196,7 @@ public class LocalUser_Store
             var data = await LocalUser_Randombox.Open_Randombox(cur_store.L_RewardInfo.ToArray().ItemMulCount(count));
 
             //가격 지불 및 획득
-            Dictionary<int, User_Inven.Inven> d_inven = await LocalUser_Inven.Add_Remove_byKind(data.reward_info, price_info);
+            var InvenChangeData = await LocalUser_Inven.Add_Remove_byKind(data.reward_info, price_info);
 
             //결제상품인지 확인
             if (cur_store.Purchase.IsNullOrEmptyOrN())
@@ -204,7 +210,7 @@ public class LocalUser_Store
 
             UserManager.Save_LocalUD(User_Store.Path, m_userstore);
             Debug.Log("구매완료");
-            return (m_userstore.D_StoreLock, m_userstore.L_Purchase_Record, d_inven, data.d_randombox, data.reward_info);
+            return (m_userstore.D_StoreLock, m_userstore.L_Purchase_Record, InvenChangeData.D_Inven, data.d_randombox, data.reward_info, InvenChangeData.Replacement_Info);
         }
         else
         {
@@ -223,8 +229,8 @@ public class LocalUser_Store
         if (await LocalUser_Inven.CheckItemCount(price_info.ToArray()))
         {
             //가격지불
-            Dictionary<int, User_Inven.Inven> d_inven = await LocalUser_Inven.Add_Remove_byKind(null, price_info.ToArray());
-            return d_inven;
+            var InvenChangeData = await LocalUser_Inven.Add_Remove_byKind(null, price_info.ToArray());
+            return InvenChangeData.D_Inven;
         }
         else
         {

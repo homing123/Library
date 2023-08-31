@@ -145,7 +145,7 @@ public class User_Time : UserData_Server
         {
             if (UserManager.Exist_LocalUD(Path))
             {
-                var data = await UserManager.Load_LocalUDAsync<User_Time>(Path);
+                var data = UserManager.Load_LocalUD<User_Time>(Path);
                 Access_Time = data.Access_Time;
             }
             else
