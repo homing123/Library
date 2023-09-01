@@ -272,6 +272,7 @@ public static class Ex_Store
 }
 #endregion
 #region Streaming Store
+[Serializable]
 public class J_StoreData
 {
     public const string Path = "Store";

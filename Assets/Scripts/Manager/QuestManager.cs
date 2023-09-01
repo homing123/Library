@@ -430,6 +430,7 @@ public static class Ex_Quest
 }
 #endregion
 #region Streaming Quest
+[Serializable]
 public class J_QuestData
 {
     public const string Path = "Quest";

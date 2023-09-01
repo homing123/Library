@@ -217,6 +217,7 @@ public static class Ex_Randombox
 }
 #endregion
 #region Streaming Randombox
+[Serializable]
 public class J_RandomBoxData
 {
     //MaxCount∏¶ ∞°µÊ √§øÏ∏È MaxReward æ∆¿Ã≈€ »πµÊ

@@ -597,6 +597,7 @@ public static class Ex_Inven
 
 #endregion
 #region Streaming Item
+[Serializable]
 public class J_ItemData
 {
     public const string Path = "Item";

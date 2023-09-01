@@ -1,7 +1,10 @@
 using System;
 using UnityEngine;
 using System.IO;
-using Newtonsoft.Json.Converters;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Formatters.Binary;
+using Newtonsoft.Json;
+using UnityEngine.Networking;
 public class StreamingManager
 {
     public enum E_Type
@@ -15,9 +18,11 @@ public class StreamingManager
     static readonly string StreamingText_Path = Application.streamingAssetsPath + "/Text";
     static readonly string StreamingBinary_Path = Application.streamingAssetsPath + "/Binary";
 
-    public static string Get_StreamingPath(string filename, E_Type type = E_Type.FollowPlatform)
+    public const E_Type Cur_StreamingType = E_Type.FollowPlatform;
+
+    public static string Get_StreamingPath(string filename)
     {
-        switch (type)
+        switch (Cur_StreamingType)
         {
             case E_Type.FollowPlatform:
 #if UNITY_EDITOR
@@ -42,66 +47,35 @@ public class StreamingManager
             return;
         }
 
-        object temp = null;
-        Read_Data<object>(Get_StreamingPath(J_ItemData.Path), (obj) =>
-        {
-            temp = obj;
-        });
-
-        J_ItemData itemdata = temp as J_ItemData;
-        if (itemdata != null)
-        {
-
-            Debug.Log(itemdata.ID[0] + " " + itemdata.ID.Length);
-        }
-        else
-        {
-            Debug.Log("아이템데이터 널");
-        }
-
-        Debug.Log(JsonUtility.ToJson(temp));
-
-        J_ItemData temp_2 = null;
-        Read_Data<J_ItemData>(Get_StreamingPath(J_ItemData.Path), (obj) =>
-        {
-            temp_2 = obj;
-        });
-
-        itemdata = temp_2 as J_ItemData;
-        if (itemdata != null)
-        {
-
-            Debug.Log(itemdata.ID[0] + " " + itemdata.ID.Length);
-        }
-        else
-        {
-            Debug.Log("아이템데이터 널");
-        }
-
-        Debug.Log(JsonUtility.ToJson(temp_2));
-
         string[] TextFiles_Path = Directory.GetFiles(StreamingText_Path, "*.txt");
 
-        foreach (string textfile_path in TextFiles_Path)
+        foreach (string textFile in TextFiles_Path)
         {
-            BinaryConverter b_converter = new BinaryConverter();
+            // 파일 이름에서 확장자 및 경로를 제거하고 J_를 붙여서 클래스 이름 생성
+            string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(textFile);
+            string className = "J_" + fileNameWithoutExtension+"Data";
             
+            // 텍스트 파일을 읽어와 JSON 문자열로 변환
+            string jsonText = File.ReadAllText(textFile);
 
-            //string fileName = Path.GetFileNameWithoutExtension(textfile_path);
-            //string binaryfile_path = Get_StreamingPath(fileName, E_Type.Binary);
-            //DirectoryInfo directoryInfo = new DirectoryInfo(Path.GetDirectoryName(binaryfile_path));
+            // JSON 문자열을 역직렬화하여 해당 클래스로 변환
+            object deserializedObject = JsonConvert.DeserializeObject(jsonText, Type.GetType(className));
+            if (Type.GetType(className) == null)
+            {
+                Debug.Log("클래스 없음 : " + className);
+            }
 
-            //if (!directoryInfo.Exists)
-            //{
-            //    directoryInfo.Create();
-            //}
+            // 직렬화된 데이터를 바이너리 파일로 저장
+            string binaryFilePath = Path.Combine(StreamingBinary_Path, fileNameWithoutExtension + ".bin");
 
-            //BinaryFormatter binaryFormatter = new BinaryFormatter();
-            //FileStream fileStream = File.Open(binaryfile_path, FileMode.OpenOrCreate);
-            //binaryFormatter.Serialize(fileStream, ReadData<T>(filename));
-            //fileStream.Close();
+            using (FileStream binaryFileStream = new FileStream(binaryFilePath, FileMode.Create))
+            {
+                BinaryFormatter binaryFormatter = new BinaryFormatter();
+                binaryFormatter.Serialize(binaryFileStream, deserializedObject);
+            }
+
+            Debug.Log($"{textFile} 역 직렬화 및 {binaryFilePath}로 저장 완료.");
         }
-
         Debug.Log("Conversion complete.");
     }
     public static async void Load_StreamingData(Action ac_successed)
@@ -110,16 +84,28 @@ public class StreamingManager
         ac_successed?.Invoke();
     }
 
-    public static void Read_Data<T>(string path, Action<T> ac_dicset, E_Type type = E_Type.FollowPlatform)
+    public static void Read_Data<T>(string path, Action<T> ac_dicset)
     {
-
-        switch (type)
+        switch (Cur_StreamingType)
         {
             case E_Type.FollowPlatform:
 #if UNITY_EDITOR
                 var obj = JsonUtility.FromJson<T>(File.ReadAllText(path));
                 ac_dicset.Invoke(obj);
-#else
+#elif UNITY_ANDROID
+            UnityWebRequest webrequest = UnityWebRequest.Get(path);
+            webrequest.SendWebRequest();
+            while (!webrequest.isDone)
+            {
+
+            }
+            MemoryStream ms = new MemoryStream(webrequest.downloadHandler.data);
+            BinaryFormatter bf = new BinaryFormatter();
+            ac_dicset((T)bf.Deserialize(ms));
+#elif UNITY_IOS
+            MemoryStream ms = new MemoryStream(File.ReadAllBytes(path));
+            BinaryFormatter bf = new BinaryFormatter();
+            ac_dicset((T)bf.Deserialize(ms));
 #endif
                 break;
             case E_Type.Text:
@@ -127,8 +113,73 @@ public class StreamingManager
                 ac_dicset.Invoke(obj);
                 break;
             case E_Type.Binary:
-                
+                MemoryStream ms = new MemoryStream(File.ReadAllBytes(path));
+                BinaryFormatter bf = new BinaryFormatter();
+                ac_dicset((T)bf.Deserialize(ms));
                 break;
         }
+      
+
+
+#if UNITY_EDITOR
+        //if (OnlyBinary)
+        //{
+        //    if (filepath == null)
+        //    {
+        //        filepath = Application.streamingAssetsPath + "/Binary/";
+        //    }
+        //    string path = filepath + filename + ".bin";
+        //    MemoryStream ms = new MemoryStream(File.ReadAllBytes(path));
+        //    BinaryFormatter bf = new BinaryFormatter();
+        //    return (T)bf.Deserialize(ms);
+        //}
+        //else
+        //{
+        //    if (filepath == null)
+        //    {
+        //        filepath = Application.streamingAssetsPath + "/Text/";
+        //    }
+        //    string path = filepath + filename + ".txt";
+
+        //    return JsonUtility.FromJson<T>(File.ReadAllText(path));
+        //}
+#elif UNITY_STANDALONE_WIN
+        if (filepath == null)
+        {
+            filepath = Application.streamingAssetsPath +"/Binary/";
+        }
+        string path = filepath + filename + ".bin";
+        WWW reader = new WWW(path);
+        while (!reader.isDone) { }
+        MemoryStream ms = new MemoryStream(reader.bytes);
+        BinaryFormatter bf = new BinaryFormatter();
+        return (T)bf.Deserialize(ms);
+#elif UNITY_ANDROID
+        if (filepath == null)
+        {
+            filepath = Application.streamingAssetsPath + "/Binary/";
+        }
+        string path = filepath + filename + ".bin";
+        UnityWebRequest webrequest = UnityWebRequest.Get(path);
+        webrequest.SendWebRequest();
+        while (!webrequest.isDone)
+        {
+
+        }
+        MemoryStream ms = new MemoryStream(webrequest.downloadHandler.data);
+        BinaryFormatter bf = new BinaryFormatter();
+        return (T)bf.Deserialize(ms);
+#elif UNITY_IOS
+        if (filepath == null)
+        {
+            filepath = Application.streamingAssetsPath + "/Binary/";
+        }
+        string path = filepath + filename + ".bin";
+        MemoryStream ms = new MemoryStream(File.ReadAllBytes(path));
+        BinaryFormatter bf = new BinaryFormatter();
+        return (T)bf.Deserialize(ms);
+#endif
+
+
     }
 }

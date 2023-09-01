@@ -45,6 +45,7 @@ public class LanguageManager : Manager<LanguageManager>
     }
     #endregion
 }
+#region UD Language
 public class User_Language : UserData_Local
 {
     public const string Path = "Language";
@@ -82,6 +83,9 @@ public class User_Language : UserData_Local
         UserManager.Save_LocalUD(Path, this);
     }
 }
+#endregion
+#region Streaming Language
+[Serializable]
 public class J_LanguageData
 {
     public const string Path = "Language";
@@ -140,3 +144,4 @@ public class LanguageData
         }
     }
 }
+#endregion
