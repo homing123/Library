@@ -8,10 +8,9 @@ public class UserManager
     public const bool Use_Local = true;
     public static Action ac_LoadLocal;
     public static Func<Task> fc_LoadServer;
-    public static async void Load_Server(Action ac)
+    public static async Task Load_Server()
     {
         await fc_LoadServer.Invoke();
-        ac?.Invoke();
     }
 
     public static void Delete_Local()
@@ -23,6 +22,7 @@ public class UserManager
         File.Delete(Path.Combine(Application.persistentDataPath, User_Sound.Path));
         File.Delete(Path.Combine(Application.persistentDataPath, User_Language.Path));
         File.Delete(Path.Combine(Application.persistentDataPath, User_Randombox.Path));
+        File.Delete(Path.Combine(Application.persistentDataPath, User_Login.Path));
     }
 
     public static bool Exist_LocalUD(string path)

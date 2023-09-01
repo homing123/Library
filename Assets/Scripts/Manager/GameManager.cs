@@ -18,7 +18,7 @@ public class GameManager : MonoBehaviour
     };
     public static bool isDataLoaded = false;
     public static GameManager Instance;
-    WaitForSecondsRealtime seconds = new WaitForSecondsRealtime(0.1f);
+    public static WaitForSecondsRealtime seconds = new WaitForSecondsRealtime(0.1f);
     private void Awake()
     {
         Instance = this;
@@ -41,6 +41,7 @@ public class GameManager : MonoBehaviour
         temp = RandomBoxManager.Instance;
         temp = AdManager.Instance;
         temp = NetworkManager.Instance;
+        temp = LoginManager.Instance;
         
         //이 이후로 생성되는 유저데이터 클래스는 로딩목록에 추가되지않음 (json할때 생성해서 대입하기 때문에 그때 생성되는 애들은 로딩목록에 추가되면안됨)
         LoadindStart = true;
@@ -76,10 +77,9 @@ public class GameManager : MonoBehaviour
         }
 
         //서버데이터 로드
-        bool Serverdata_Loaded = false;
-        UserManager.Load_Server(() => Serverdata_Loaded = true);
+        var task = UserManager.Load_Server();
 
-        while (Serverdata_Loaded == false)
+        while (task.IsCompleted == false)
         {
             yield return seconds;
         }
@@ -102,10 +102,6 @@ public class GameManager : MonoBehaviour
     }
 
     // Update is called once per frame
-    void Update()
-    {
-       
-    }
 
     #region Test_Function
     [ContextMenu("UD 리셋")]

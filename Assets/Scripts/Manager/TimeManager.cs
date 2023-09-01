@@ -182,27 +182,27 @@ public class LocalUser_Time
         await Task.Delay(GameManager.Instance.TaskDelay);
         User_Time m_usertime = UserManager.Load_LocalUD<User_Time>(User_Time.Path);
 
-        DateTime cur_time = Cur_Time;
+        DateTime Cur_ResetTime = Cur_Time.Get_TodayResetTime();
         DateTime Before_Access = m_usertime.Get_AccessTime();
 
         //Before_Access = new DateTime(2024, 8, 3, 0, 0, 0);
         //cur_time = new DateTime(2024, 8, 5, 0, 0, 0);
 
-        Debug.Log("이전 : " + Before_Access.ToString() + " 현재: " + cur_time.ToString());
+        Debug.Log("이전 리셋타임: " + Before_Access.ToString() + " 현재 리셋타임: " + Cur_ResetTime.ToString() + " 현재시간 : " + Cur_Time);
         int day_count = 0;
         int week_count = 0;
         int month_count = 0;
         if (Before_Access.Year == 1)
         {
             //첫 접속
-            m_usertime.Set_AccessTime(Cur_Time.Get_TodayResetTime());
+            m_usertime.Set_AccessTime(Cur_ResetTime);
             Debug.Log("첫접속");
             Debug.Log(m_usertime.Access_Time);
             day_count = -1;
         }
         else
         {
-            day_count = (cur_time - Before_Access).Days;
+            day_count = (Cur_ResetTime - Before_Access).Days;
             int nextDOWcount = Before_Access.NextDayOfWeek(TimeManager.Reset_DOW);
             if (nextDOWcount > day_count)
             {
@@ -212,13 +212,13 @@ public class LocalUser_Time
             {
                 week_count = (day_count - nextDOWcount) / 7 + 1;
             }
-            int month_value = (cur_time.Year - Before_Access.Year) * 12 + (cur_time.Month - Before_Access.Month) - 1;
+            int month_value = (Cur_ResetTime.Year - Before_Access.Year) * 12 + (Cur_ResetTime.Month - Before_Access.Month) - 1;
 
             if (Before_Access.Day < TimeManager.Reset_Day)
             {
                 month_value++;
             }
-            if (cur_time.Day >= TimeManager.Reset_Day)
+            if (Cur_ResetTime.Day >= TimeManager.Reset_Day)
             {
                 month_value++;
             }
