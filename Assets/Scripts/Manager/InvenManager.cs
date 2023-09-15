@@ -93,6 +93,27 @@ public class User_Inven : UserData_Server
     {
         Debug.Log("InvenChanged Action");
     };
+    public void UserInvenUpdate(Dictionary<int, Inven> d_inven)
+    {
+        foreach(int key in d_inven.Keys)
+        {
+            if(d_inven[key]== null)
+            {
+                D_Inven.Remove(key);
+            }
+            else
+            {
+                if (D_Inven.ContainsKey(key))
+                {
+                    D_Inven[key] = d_inven[key];
+                }
+                else
+                {
+                    D_Inven.Add(key, d_inven[key]);
+                }
+            }
+        }
+    }
 
     public Dictionary<int, Inven> D_Inven = new Dictionary<int, Inven>();
     //[System.Serializable]
