@@ -34,5 +34,4 @@ public class UI_Login : MonoBehaviour
         LoginAdapter.Login(User_Login.E_LoginType.Guest);
         Destroy();
     }
-    // Start is called before the first frame update
 }

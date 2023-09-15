@@ -6,6 +6,7 @@
   "Purchase":[0,0],
   "Advertisement":[0,0],
   "Lock_Time":[0,0],
+  "Limit":[1,0],
   "Price_Kind":[1,1],
   "Price_ID":[1,1],
   "Price_Count":[100,100],
