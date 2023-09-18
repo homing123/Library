@@ -18,10 +18,16 @@ public class QuestManager : Manager<QuestManager>
     private void Awake()
     {
         User_Quest.m_UserQuest = new User_Quest();
-        StreamingManager.LT_StrLoad.Add_Task(new Task(() =>
+
+        StreamingManager.lt_StrLoad.Add(async () =>
         {
-            StreamingManager.Read_Data<J_QuestData>(StreamingManager.Get_StreamingPath(J_QuestData.Path), QuestData.Data_DicSet);
-        }));
+            Debug.Log("퀘스트 로드 시작");
+            await Task.Delay(3000);
+            var data = await StreamingManager.ReadDataAsync<J_QuestData>(StreamingManager.Get_StreamingPath(J_QuestData.Path));
+            QuestData.Data_DicSet(data);
+            Debug.Log("퀘스트 로드 끝");
+
+        });
         TimeManager.ev_DailyReset += Check_Attendance;
     }
     public async void Check_Attendance(object sender, int daycount)
@@ -224,7 +230,7 @@ public class User_Quest : UserData_Server
         {
             var data = await LocalUser_Quest.Complete(id);
             m_UserQuest.D_Quest = data.d_quest;
-            User_Inven.m_UserInven.D_Inven = data.d_inven;
+            UserManager.UD_Change(data.D_InvenChanged, User_Inven.m_UserInven.D_Inven);
             User_Randombox.m_UserRandombox.D_Randombox = data.d_randombox;
             ac_QuestChanged?.Invoke();
             User_Inven.ac_InvenChanged?.Invoke();
@@ -372,7 +378,7 @@ public class LocalUser_Quest
     /// </summary>
     /// <param name="id"></param>
     /// <returns></returns>
-    public static async Task<(Dictionary<int, User_Quest.Quest> d_quest,Dictionary<int,User_Inven.Inven> d_inven, (int kind, int id, int count)[] reward_info, Dictionary<int,int> d_randombox, (int kind, int id, int count)[] Replacement_Info)> Complete(int[] id)
+    public static async Task<(Dictionary<int, User_Quest.Quest> d_quest,Dictionary<int,User_Inven.Inven> D_InvenChanged, (int kind, int id, int count)[] reward_info, Dictionary<int,int> d_randombox, (int kind, int id, int count)[] Replacement_Info)> Complete(int[] id)
     {
         await Task.Delay(GameManager.Instance.TaskDelay);
         User_Quest m_userquest = UserManager.Load_LocalUD<User_Quest>(User_Quest.Path);
@@ -396,7 +402,7 @@ public class LocalUser_Quest
                 QuestData cur_quest = QuestData.Get(id[i]);
 
                 //완료보상목록에 추가
-                l_reward.Add(cur_quest.L_RewardItem);
+                l_reward.AddRange(cur_quest.L_RewardItem);
             }
             else
             {
@@ -408,10 +414,10 @@ public class LocalUser_Quest
         var data = await LocalUser_Randombox.Open_Randombox(l_reward.ToArray());
 
         //보상획득 처리
-        var inven_change_data = await LocalUser_Inven.Add_Remove_byKind(data.reward_info, null);
+        var InvenChangeData = await LocalUser_Inven.Add_Remove_byKind(data.reward_info, null);
 
         UserManager.Save_LocalUD(User_Quest.Path, m_userquest);
-        return (m_userquest.D_Quest, inven_change_data.D_Inven, data.reward_info, data.d_randombox, inven_change_data.Replacement_Info);
+        return (m_userquest.D_Quest, InvenChangeData.D_InvenChanged, data.reward_info, data.d_randombox, InvenChangeData.Replacement_Info);
     }
 }
 public static class Ex_Quest

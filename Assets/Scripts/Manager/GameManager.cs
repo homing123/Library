@@ -12,10 +12,8 @@ public class GameManager : MonoBehaviour
     {
         Debug.Log("DataLoaded Action");
     };
-    public static Func<Task> fc_DataLoadedAsync = ()=>
-    {
-        return new Task(()=> Debug.Log("DataLoadedAsync Func"));
-    };
+    public static L_Task lt_DataLoadedAsync = new L_Task();
+
     public static bool isDataLoaded = false;
     public static GameManager Instance;
     public static WaitForSecondsRealtime seconds = new WaitForSecondsRealtime(0.1f);
@@ -46,34 +44,22 @@ public class GameManager : MonoBehaviour
         //이 이후로 생성되는 유저데이터 클래스는 로딩목록에 추가되지않음 (json할때 생성해서 대입하기 때문에 그때 생성되는 애들은 로딩목록에 추가되면안됨)
         LoadindStart = true;
 
-        StartCoroutine(TimeManager.Instance.Get_CurTime());
-        while(TimeManager.isCurTimeSet == false)
-        {
-            Debug.Log(TimeManager.isCurTimeSet);
-            yield return seconds;
-        }
+        yield return StartCoroutine(TimeManager.Instance.Get_CurTime());
+
         //로컬
         UserManager.ac_LoadLocal.Invoke();
 
         //스트리밍
         Debug.Log("스트리밍 부르기");
-        bool Streaming_Loaded = false;
-        StreamingManager.Load_StreamingData(() => Streaming_Loaded = true);
-        while (Streaming_Loaded == false)
-        {
-            yield return seconds;
-        }
+
+        yield return StreamingManager.Load_StreamingData();
+
         Debug.Log("스트리밍 부르기 완료");
         
         //로그인
         if (GameSetting.Login)
         {
-            StartCoroutine(LoginManager.Instance.LoginSequence());
-
-            while (LoginManager.LoginSequence_Success == false)
-            {
-                yield return seconds;
-            }
+            yield return StartCoroutine(LoginManager.Instance.LoginSequence());
         }
 
         //서버데이터 로드
@@ -86,15 +72,8 @@ public class GameManager : MonoBehaviour
 
 
         ac_DataLoaded?.Invoke();
-        fc_DataLoadedAsync.Fc_Async(() =>
-        {
-            isDataLoaded = true;
-        });
-
-        while (isDataLoaded == false)
-        {
-            yield return seconds;
-        }
+        yield return lt_DataLoadedAsync.Invoke_Parallel();
+        isDataLoaded = true;
 
         Debug.Log("완료");
 
@@ -111,7 +90,7 @@ public class GameManager : MonoBehaviour
         UserManager.ac_LoadLocal?.Invoke();
         await UserManager.fc_LoadServer?.Invoke();
         ac_DataLoaded?.Invoke();
-        await fc_DataLoadedAsync?.Invoke();
+        await lt_DataLoadedAsync.Invoke_Parallel();
     }
     [ContextMenu("UD 삭제")]
     public void UD_Delete()

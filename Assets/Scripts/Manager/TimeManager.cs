@@ -54,7 +54,7 @@ public class TimeManager : Manager<TimeManager>
     private void Awake()
     {
         User_Time.m_UserTime = new User_Time();
-        GameManager.fc_DataLoadedAsync += Access_Reset_Check;
+        GameManager.lt_DataLoadedAsync.Add(Access_Reset_Check);
         InputManager.ev_ApplicationPause += Ev_ApplicationPause;
     }
     float update_time;

@@ -16,10 +16,12 @@ public class LanguageManager : Manager<LanguageManager>
     private void Awake()
     {
         User_Language.m_UserLanguage = new User_Language();
-        StreamingManager.LT_StrLoad.Add_Task(new Task(() =>
+
+        StreamingManager.lt_StrLoad.Add(async () =>
         {
-            StreamingManager.Read_Data<J_LanguageData>(StreamingManager.Get_StreamingPath(J_LanguageData.Path), LanguageData.Data_DicSet);
-        }));
+            var data = await StreamingManager.ReadDataAsync<J_LanguageData>(StreamingManager.Get_StreamingPath(J_LanguageData.Path));
+            LanguageData.Data_DicSet(data);
+        });
     }
 
     public void ChangeLanguage(E_Language e_lang)

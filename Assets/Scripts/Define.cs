@@ -204,34 +204,7 @@ public static class Ex_Define
             return false;
         }
     }
-    public static void Add<T>(this List<T> list, T[] array)
-    {
-        if (array == null || array.Length == 0)
-        {
-            throw new Exception("Add array to List Error : array is null or array's length is 0");
-        }
-        for (int i = 0; i < array.Length; i++)
-        {
-            list.Add(array[i]);
-        }
-    }
-    public static void Add<T>(this List<T> list, List<T> array)
-    {
-        if (array == null || array.Count == 0)
-        {
-            throw new Exception("Add List to List Error : List is null or List's Count is 0");
-        }
-        for (int i = 0; i < array.Count; i++)
-        {
-            list.Add(array[i]);
-        }
-    }
 
-    public static async void Fc_Async(this Func<Task> func, Action ac_complete)
-    {
-        await func?.Invoke();
-        ac_complete?.Invoke();
-    }
     public static bool Empty<T>(this T[] arr)
     {
         if(arr == null || arr.Length == 0)
@@ -279,30 +252,46 @@ public static class Ex_Define
             array[j] = temp;
         }
     }
+
 }
 
 //동기를 병렬비동기로 바꿀때 사용
 public class L_Task
 {
-    public List<Task> l_task = new List<Task>();
-    public async Task Invoke()
+    public List<Func<Task>> l_fc_task = new List<Func<Task>>();
+    public async Task Invoke_Serial()
     {
-        for (int i = 0; i < l_task.Count; i++)
+        Debug.Log("직렬스타트");
+        for (int i = 0; i < l_fc_task.Count; i++)
         {
-            l_task[i].Start();
+            await l_fc_task[i]();
         }
-        await Task.WhenAll(l_task);
-    }
+        Debug.Log("직렬엔드");
 
-    public void Add_Task(Task task)
-    {
-        l_task.Add(task);
     }
-    public void Remove_Task(Task task)
+    public async Task Invoke_Parallel()
     {
-        if (task != null)
+        Func<Task> fc_task = null;
+        for (int i = 0; i < l_fc_task.Count; i++)
         {
-            l_task.Remove(task);
+            fc_task += l_fc_task[i];
+        }
+        Debug.Log("전부 실행");
+        await fc_task();
+        Debug.Log("전부 실행 완료");
+    }
+    public void Add(Func<Task> fc)
+    {
+        if (fc != null)
+        {
+            l_fc_task.Add(fc);
+        }
+    }
+    public void Remove(Func<Task> fc)
+    {
+        if (fc != null)
+        {
+            l_fc_task.Remove(fc);
         }
     }
 }

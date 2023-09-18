@@ -8,10 +8,11 @@ public class RandomBoxManager : Manager<RandomBoxManager>
     private void Awake()
     {
         User_Randombox.m_UserRandombox = new User_Randombox();
-        StreamingManager.LT_StrLoad.Add_Task(new Task(() =>
+        StreamingManager.lt_StrLoad.Add(async () =>
         {
-            StreamingManager.Read_Data<J_RandomBoxData>(StreamingManager.Get_StreamingPath(J_RandomBoxData.Path), RandomBoxData.Data_DicSet);
-        }));
+            var data = await StreamingManager.ReadDataAsync<J_RandomBoxData>(StreamingManager.Get_StreamingPath(J_RandomBoxData.Path));
+            RandomBoxData.Data_DicSet(data);
+        });
     }
 
     [SerializeField] int Test_RandomBoxID;
@@ -87,7 +88,7 @@ public class LocalUser_Randombox
                     }
 
                     //랜덤박스 오픈
-                    l_reward_info.Add(m_userrandombox.Get_RandomboxResult(item_info[i].id));
+                    l_reward_info.AddRange(m_userrandombox.Get_RandomboxResult(item_info[i].id));
                 }
             }
             else
@@ -129,7 +130,7 @@ public class LocalUser_Randombox
         //갯수만큼 결과받기
         for (int i = 0; i < count; i++)
         {
-            l_rewardinfo.Add(m_userrandombox.Get_RandomboxResult(box_id));
+            l_rewardinfo.AddRange(m_userrandombox.Get_RandomboxResult(box_id));
         }
 
         //보상 목록에 상자 있을경우 상자 오픈
@@ -145,7 +146,7 @@ public class LocalUser_Randombox
                     {
                         throw new Exception("Randombox Gacha has Infinity Loop ID : " + box_id + " Count : " + count);
                     }
-                    l_rewardinfo.Add(m_userrandombox.Get_RandomboxResult(l_rewardinfo[i].id));
+                    l_rewardinfo.AddRange(m_userrandombox.Get_RandomboxResult(l_rewardinfo[i].id));
                 }
                 l_rewardinfo.RemoveAt(i);
                 i--;
@@ -177,7 +178,7 @@ public static class Ex_Randombox
         //check first open
         if (cur_box.L_FirstRewardInfo.Empty() == false && user_Randombox.isFirst(id))
         {
-            l_iteminfo.Add(cur_box.L_FirstRewardInfo);
+            l_iteminfo.AddRange(cur_box.L_FirstRewardInfo);
         }
         else
         {
@@ -187,7 +188,7 @@ public static class Ex_Randombox
         //add extra reward
         if (cur_box.L_ExtraRewardInfo.Empty() == false)
         {
-            l_iteminfo.Add(cur_box.L_ExtraRewardInfo);
+            l_iteminfo.AddRange(cur_box.L_ExtraRewardInfo);
         }
         return l_iteminfo.ToArray();
     }
@@ -318,7 +319,7 @@ public class RandomBoxData
         //타입값 확률없는상품 리스트에 추가
         for(int i = 0; i < cur_box.L_TypeKind.Count; i++)
         {
-            l_none_per.Add(ItemData.GetItems_byKind_WithCount(cur_box.L_TypeKind[i]));
+            l_none_per.AddRange(ItemData.GetItems_byKind_WithCount(cur_box.L_TypeKind[i]));
         }
 
         //낱개값 확률에따라 리스트에 추가

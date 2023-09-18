@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 public class LoginManager : Manager<LoginManager>
 {
     public static bool isLogin = false;
-    public static bool LoginSequence_Success = false;
 
     const string TokenSet = "TokenSet";
     const string Check_DuplicateLogin = "Check_DuplicateLogin";
@@ -19,7 +18,6 @@ public class LoginManager : Manager<LoginManager>
     {
         isLogin = false;
         bool isfirstLogin = false;
-        LoginSequence_Success = false;
         //로그인 처리
         switch (User_Login.m_UserLogin.LoginType)
         {
@@ -70,7 +68,6 @@ public class LoginManager : Manager<LoginManager>
             }
         }
 
-        LoginSequence_Success = true;
     }
 
     public IEnumerator AccountChangeSequence(User_Login.E_LoginType type)

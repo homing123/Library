@@ -8,10 +8,11 @@ public class StoreManager : Manager<StoreManager>
     private void Awake()
     {
         User_Store.m_UserStore = new User_Store();
-        StreamingManager.LT_StrLoad.Add_Task(new Task(() =>
+        StreamingManager.lt_StrLoad.Add(async () =>
         {
-            StreamingManager.Read_Data<J_StoreData>(StreamingManager.Get_StreamingPath(J_StoreData.Path), StoreData.Data_DicSet);
-        }));
+            var data = await StreamingManager.ReadDataAsync<J_StoreData>(StreamingManager.Get_StreamingPath(J_StoreData.Path));
+            StoreData.Data_DicSet(data);
+        });
     }
 
     public void Buy((int kind, int id, int count) price_info, Action ac_buy)
@@ -119,7 +120,7 @@ public class User_Store : UserData_Server
         {
             var data = await LocalUser_Store.Buy(id, count);
             D_Store = data.D_Store;
-            User_Inven.m_UserInven.D_Inven = data.D_Inven;
+            UserManager.UD_Change(data.D_InvenChanged, User_Inven.m_UserInven.D_Inven);
             ac_StoreChanged?.Invoke();
             User_Inven.ac_InvenChanged?.Invoke();
             User_Randombox.m_UserRandombox.D_Randombox = data.D_Randombox;
@@ -141,7 +142,8 @@ public class User_Store : UserData_Server
     {
         if (UserManager.Use_Local)
         {
-            User_Inven.m_UserInven.D_Inven = await LocalUser_Store.Buy(price_info);
+            var data = await LocalUser_Store.Buy(price_info);
+            UserManager.UD_Change(data, User_Inven.m_UserInven.D_Inven);
             User_Inven.ac_InvenChanged?.Invoke();
             ac_buy();
         }
@@ -159,7 +161,7 @@ public class LocalUser_Store
     /// <param name="id"></param>
     /// <param name="count"></param>
     /// <returns></returns>
-    public static async Task<(Dictionary<int, User_Store.Store> D_Store, Dictionary<int,User_Inven.Inven> D_Inven, Dictionary<int,int> D_Randombox, (int kind, int id, int count)[] Reward_Info, (int kind, int id, int count)[] Replacement_Info)> Buy(int id, int count = 1)
+    public static async Task<(Dictionary<int, User_Store.Store> D_Store, Dictionary<int,User_Inven.Inven> D_InvenChanged, Dictionary<int,int> D_Randombox, (int kind, int id, int count)[] Reward_Info, (int kind, int id, int count)[] Replacement_Info)> Buy(int id, int count = 1)
     {
         Debug.Log("구매");
         await Task.Delay(GameManager.Instance.TaskDelay);
@@ -208,7 +210,7 @@ public class LocalUser_Store
 
             UserManager.Save_LocalUD(User_Store.Path, m_userstore);
             Debug.Log("구매완료");
-            return (m_userstore.D_Store, InvenChangeData.D_Inven, data.d_randombox, data.reward_info, InvenChangeData.Replacement_Info);
+            return (m_userstore.D_Store, InvenChangeData.D_InvenChanged, data.d_randombox, data.reward_info, InvenChangeData.Replacement_Info);
         }
         else
         {
@@ -228,7 +230,7 @@ public class LocalUser_Store
         {
             //가격지불
             var InvenChangeData = await LocalUser_Inven.Add_Remove_byKind(null, price_info.ToArray());
-            return InvenChangeData.D_Inven;
+            return InvenChangeData.D_InvenChanged;
         }
         else
         {

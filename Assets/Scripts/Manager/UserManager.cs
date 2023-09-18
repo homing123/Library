@@ -3,6 +3,7 @@ using System.IO;
 using Newtonsoft.Json;
 using UnityEngine;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 public class UserManager
 {
     public const bool Use_Local = true;
@@ -43,5 +44,25 @@ public class UserManager
 
         File.WriteAllText(path, JsonConvert.SerializeObject(obj));
     }
-
+    public static void UD_Change<T>(Dictionary<int, T> server_dic, Dictionary<int, T> user_dic)
+    {
+        foreach (int key in server_dic.Keys)
+        {
+            if (server_dic[key] == null)
+            {
+                user_dic.Remove(key);
+            }
+            else
+            {
+                if (user_dic.ContainsKey(key))
+                {
+                    user_dic[key] = server_dic[key];
+                }
+                else
+                {
+                    user_dic.Add(key, server_dic[key]);
+                }
+            }
+        }
+    }
 }
