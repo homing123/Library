@@ -393,6 +393,7 @@ public class LocalUser_Quest
         //상태 받아오기
         var arr_state = await Get_State(id);
 
+
         //완료처리
         for (int i = 0; i < id.Length; i++)
         {
@@ -407,7 +408,7 @@ public class LocalUser_Quest
                     m_userquest.D_Quest.Add(id[i], new User_Quest.Quest() { State = E_QuestState.Complete });
                 }
 
-                d_QuestChanged[id[i]] = m_userquest.D_Quest[i];
+                d_QuestChanged[id[i]] = m_userquest.D_Quest[id[i]];
                 QuestData cur_quest = QuestData.Get(id[i]);
 
                 //완료보상목록에 추가
@@ -415,15 +416,17 @@ public class LocalUser_Quest
             }
             else
             {
-                throw new Exception("State is not Completable : id " + id + " ,state " + arr_state[i]);
+                throw new Exception("State is not Completable : id " + id[i] + " ,state " + arr_state[i]);
             }
         }
 
         //랜덤박스 있을경우 오픈
         var RandomboxOpenData = await LocalUser_Randombox.Open_Randombox(l_reward.ToArray());
 
+
         //보상획득 처리
         var InvenChangeData = await LocalUser_Inven.Add_Remove_byKind(RandomboxOpenData.reward_info, null);
+
 
         UserManager.Save_LocalUD(User_Quest.Path, m_userquest);
         return (d_QuestChanged, InvenChangeData.D_InvenChanged, RandomboxOpenData.reward_info, RandomboxOpenData.D_RandomboxChanged, InvenChangeData.Replacement_Info);

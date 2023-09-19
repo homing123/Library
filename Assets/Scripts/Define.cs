@@ -254,14 +254,17 @@ public static class Ex_Define
     }
     public static void Overlap<TKey, TValue>(this Dictionary<TKey, TValue> d_origin, Dictionary<TKey,TValue> d_overdic)
     {
+        Debug.Log("µ¤±â °¹¼ö : " + d_overdic.Count);
         foreach(TKey key in d_overdic.Keys)
         {
             if (d_overdic[key] == null)
             {
+                Debug.Log("Á¦°Å : " + key);
                 d_origin.Remove(key);
             }
             else
             {
+                Debug.Log("º¯°æ : " + key);
                 d_origin[key] = d_overdic[key];
             }
         }

@@ -189,13 +189,20 @@ public class LocalUser_Store
             //구매 홧수제한 확인
             if (cur_store.Limit > 0)
             {
-                if (m_userstore.isLimit(id, cur_store.Limit))
+                if (m_userstore.isLimit(id, count, cur_store.Limit))
                 {
-                    throw new Exception($"This Product has Limit. ID : {id} UserLimit Count : {m_userstore.D_Store[id].Count} ProductLimit Count : {cur_store.Limit}");
+                    if (m_userstore.D_Store.ContainsKey(id)) 
+                    { 
+                        throw new Exception($"This Product has Limit. ID : {id} UserLimit Count : {m_userstore.D_Store[id].Count} ProductLimit Count : {cur_store.Limit} StoreCount : {count}");
+                    }
+                    else
+                    {
+                        throw new Exception($"This Product has Limit. ID : {id} UserLimit Count : {0} ProductLimit Count : {cur_store.Limit} StoreCount : {count}");
+                    }
                 }
                 else
                 {
-                    m_userstore.AddLimitCount(id);
+                    m_userstore.AddLimitCount(id, count);
                     d_StoreChanged[id] = m_userstore.D_Store[id];
                 }
             }
@@ -253,11 +260,11 @@ public class LocalUser_Store
 }
 public static class Ex_Store 
 {
-    public static bool isLimit(this User_Store m_userstore, int id, int limit_count)
+    public static bool isLimit(this User_Store m_userstore, int id, int count, int limit_count)
     {
         if (m_userstore.D_Store.ContainsKey(id))
         {
-            if(m_userstore.D_Store[id].Count < limit_count)
+            if(m_userstore.D_Store[id].Count + count <= limit_count)
             {
                 return false;
             }
@@ -268,19 +275,26 @@ public static class Ex_Store
         }
         else
         {
-            return false;
+            if (count <= limit_count)
+            {
+                return false;
+            }
+            else
+            {
+                return true;
+            }
         }
     }
-    public static void AddLimitCount(this User_Store m_userstore, int id)
+    public static void AddLimitCount(this User_Store m_userstore, int id, int count)
     {
         if (m_userstore.D_Store.ContainsKey(id))
         {
-            m_userstore.D_Store[id].Count++;
+            m_userstore.D_Store[id].Count += count;
         }
         else
         {
             User_Store.Store user_store = new User_Store.Store();
-            user_store.Count = 1;
+            user_store.Count = count;
             m_userstore.D_Store.Add(id, user_store);
         }
     }
