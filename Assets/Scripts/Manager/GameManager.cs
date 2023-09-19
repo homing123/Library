@@ -24,9 +24,9 @@ public class GameManager : MonoBehaviour
     }
     void Start()
     {
-        StartCoroutine(LoadingStart());
+        StartCoroutine(StartSequence());
     }
-    IEnumerator LoadingStart()
+    IEnumerator StartSequence()
     {
         yield return seconds;
         object temp = InvenManager.Instance;
@@ -44,15 +44,27 @@ public class GameManager : MonoBehaviour
         //이 이후로 생성되는 유저데이터 클래스는 로딩목록에 추가되지않음 (json할때 생성해서 대입하기 때문에 그때 생성되는 애들은 로딩목록에 추가되면안됨)
         LoadindStart = true;
 
+        //시간
         yield return StartCoroutine(TimeManager.Instance.Get_CurTime());
 
-        //로컬
+        //로컬 데이터
         UserManager.ac_LoadLocal.Invoke();
+
+        //점검 확인
+        if (GameSetting.Inspection)
+        {
+
+        }
+
+        //버전 확인
+        if (GameSetting.VersionCheck)
+        {
+
+        }
 
         //스트리밍
         var task = StreamingManager.Load_StreamingData();
         yield return new WaitUntil(() => task.IsCompleted);
-        Debug.Log("스트 끝임");
         
         //로그인
         if (GameSetting.Login)

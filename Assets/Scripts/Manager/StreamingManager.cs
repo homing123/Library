@@ -17,7 +17,6 @@ public class StreamingManager
     }
 
     public static L_Task lt_StrLoad = new L_Task();
-    public static Func<Task> fc_Test;
     static readonly string StreamingText_Path = Application.streamingAssetsPath + "/Text";
     static readonly string StreamingBinary_Path = Application.streamingAssetsPath + "/Binary";
 
@@ -83,10 +82,14 @@ public class StreamingManager
     }
     public static async Task Load_StreamingData()
     {
-        Debug.Log("스트시작");
-        await fc_Test.Invoke();
-        await lt_StrLoad.Invoke_Parallel();
-        Debug.Log("스트끝");
+        if (GameSetting.ServerStreamingData)
+        {
+            //서버 스트리밍 가져올경우
+        }
+        else
+        {
+            await lt_StrLoad.Invoke_Parallel();
+        }
     }
 
     public static T ReadData<T>(string path)

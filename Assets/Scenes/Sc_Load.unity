@@ -317,7 +317,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bb227f23ba365864582ad09482f1c046, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  TaskDelay: 3000
+  TaskDelay: 500
 --- !u!4 &1151940961
 Transform:
   m_ObjectHideFlags: 0
@@ -349,7 +349,10 @@ MonoBehaviour:
   m_Cheat: 0
   m_Ad: 0
   m_AdSdk: 0
-  m_Login: 1
+  m_Login: 0
+  m_VersionCheck: 0
+  m_Inspection: 0
+  m_ServerStreamingData: 0
 --- !u!114 &1151940963
 MonoBehaviour:
   m_ObjectHideFlags: 0

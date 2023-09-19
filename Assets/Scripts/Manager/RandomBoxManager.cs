@@ -37,7 +37,6 @@ public class User_Randombox : UserData_Server
 
     public override async Task Load()
     {
-        Debug.Log("랜박로드 시작");
         await Task.Delay(GameManager.Instance.TaskDelay);
         if (UserManager.Use_Local)
         {
@@ -57,8 +56,6 @@ public class User_Randombox : UserData_Server
         {
             //서버에서 있는지없는지 확인 후 없으면 생성해서 보내면 그거 받으면됨
         }
-        Debug.Log("랜박로드 끝");
-
     }
 }
 public class LocalUser_Randombox
@@ -159,7 +156,7 @@ public class LocalUser_Randombox
         //인벤에서 보상획득 및 상자 제거
         var inven_add_data = await LocalUser_Inven.Add_Remove_byKey(l_rewardinfo.ToArray(), (inven_key, count).ToArray());
 
-        return (inven_add_data.D_Inven, m_userrandombox.D_Randombox, inven_add_data.Replacement_Info);
+        return (inven_add_data.D_InvenChanged, m_userrandombox.D_Randombox, inven_add_data.Replacement_Info);
     }
 }
 public static class Ex_Randombox

@@ -252,7 +252,13 @@ public static class Ex_Define
             array[j] = temp;
         }
     }
-
+    public static void Overlap<TKey, TValue>(this Dictionary<TKey, TValue> d_origin, Dictionary<TKey,TValue> d_overdic)
+    {
+        foreach(TKey key in d_overdic.Keys)
+        {
+            d_origin[key] = d_overdic[key];
+        }
+    }
 }
 
 /// <summary>
@@ -290,7 +296,7 @@ public class L_Task
         {
             arr_task[i] = l_fc_task[i]();
         }
-        await Task.WhenAll(l_fc_task);
+        await Task.WhenAll(arr_task);
     }
 
     public void Add(Func<Task> fc)
