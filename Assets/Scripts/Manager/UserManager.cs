@@ -11,7 +11,10 @@ public class UserManager
     public static Func<Task> fc_LoadServer;
     public static async Task Load_Server()
     {
+        Debug.Log("로드서버 시작");
         await fc_LoadServer.Invoke();
+        Debug.Log("로드서버 끝");
+
     }
 
     public static void Delete_Local()

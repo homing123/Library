@@ -17,13 +17,19 @@ public class InvenManager : Manager<InvenManager>
     private void Awake()
     {
         User_Inven.m_UserInven = new User_Inven();
-        StreamingManager.lt_StrLoad.Add(async () =>
+        StreamingManager.fc_Test += async () =>
         {
-            Debug.Log("인벤로드 시작");
+            Debug.Log("인벤시작");
             await Task.Delay(3000);
             var data = await StreamingManager.ReadDataAsync<J_ItemData>(StreamingManager.Get_StreamingPath(J_ItemData.Path));
             ItemData.Data_DicSet(data);
-            Debug.Log("인벤로드 끝");
+            Debug.Log("인벤끝");
+
+        };
+        StreamingManager.lt_StrLoad.Add(async () =>
+        {
+            var data = await StreamingManager.ReadDataAsync<J_ItemData>(StreamingManager.Get_StreamingPath(J_ItemData.Path));
+            ItemData.Data_DicSet(data);
         });
     }
     public async Task Add_Remove_byKind((int kind, int id, int count)[] add_info, (int kind, int id, int count)[] remove_info)
@@ -706,7 +712,6 @@ public class ItemData
             ItemData cur_item = D_Data[data_key];
             cur_item.L_ReplacementItem.AddItemInfo(j_obj.Replacement_Kind[i], j_obj.Replacement_ID[i], j_obj.Replacement_Count[i]);
         }
-        Debug.Log("인벤 불러오기 완료");
     }
 
     public static ItemData Get((int kind, int id) key)

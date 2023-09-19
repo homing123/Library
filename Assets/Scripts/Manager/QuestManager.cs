@@ -18,14 +18,19 @@ public class QuestManager : Manager<QuestManager>
     private void Awake()
     {
         User_Quest.m_UserQuest = new User_Quest();
-
-        StreamingManager.lt_StrLoad.Add(async () =>
+        StreamingManager.fc_Test += async () =>
         {
-            Debug.Log("퀘스트 로드 시작");
+            Debug.Log("퀘시작");
             await Task.Delay(3000);
             var data = await StreamingManager.ReadDataAsync<J_QuestData>(StreamingManager.Get_StreamingPath(J_QuestData.Path));
             QuestData.Data_DicSet(data);
-            Debug.Log("퀘스트 로드 끝");
+            Debug.Log("퀘끝");
+
+        };
+        StreamingManager.lt_StrLoad.Add(async () =>
+        {
+            var data = await StreamingManager.ReadDataAsync<J_QuestData>(StreamingManager.Get_StreamingPath(J_QuestData.Path));
+            QuestData.Data_DicSet(data);
 
         });
         TimeManager.ev_DailyReset += Check_Attendance;
@@ -116,6 +121,7 @@ public class User_Quest : UserData_Server
     }
     public override async Task Load()
     {
+        Debug.Log("퀘스트 로드 시작");
         await Task.Delay(GameManager.Instance.TaskDelay);
         if (UserManager.Use_Local)
         {
@@ -141,6 +147,8 @@ public class User_Quest : UserData_Server
         {
             //서버에서 있는지없는지 확인 후 없으면 생성해서 보내면 그거 받으면됨
         }
+        Debug.Log("퀘스트 로드 끝");
+
     }
     public E_QuestState Get_State(int id)
     {

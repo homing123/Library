@@ -50,11 +50,9 @@ public class GameManager : MonoBehaviour
         UserManager.ac_LoadLocal.Invoke();
 
         //스트리밍
-        Debug.Log("스트리밍 부르기");
-
-        yield return StreamingManager.Load_StreamingData();
-
-        Debug.Log("스트리밍 부르기 완료");
+        var task = StreamingManager.Load_StreamingData();
+        yield return new WaitUntil(() => task.IsCompleted);
+        Debug.Log("스트 끝임");
         
         //로그인
         if (GameSetting.Login)
@@ -63,13 +61,8 @@ public class GameManager : MonoBehaviour
         }
 
         //서버데이터 로드
-        var task = UserManager.Load_Server();
-
-        while (task.IsCompleted == false)
-        {
-            yield return seconds;
-        }
-
+        task = UserManager.Load_Server();
+        yield return new WaitUntil(() => task.IsCompleted);
 
         ac_DataLoaded?.Invoke();
         yield return lt_DataLoadedAsync.Invoke_Parallel();

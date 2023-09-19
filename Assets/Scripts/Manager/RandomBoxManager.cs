@@ -37,6 +37,7 @@ public class User_Randombox : UserData_Server
 
     public override async Task Load()
     {
+        Debug.Log("랜박로드 시작");
         await Task.Delay(GameManager.Instance.TaskDelay);
         if (UserManager.Use_Local)
         {
@@ -56,6 +57,8 @@ public class User_Randombox : UserData_Server
         {
             //서버에서 있는지없는지 확인 후 없으면 생성해서 보내면 그거 받으면됨
         }
+        Debug.Log("랜박로드 끝");
+
     }
 }
 public class LocalUser_Randombox

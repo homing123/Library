@@ -255,31 +255,44 @@ public static class Ex_Define
 
 }
 
-//동기를 병렬비동기로 바꿀때 사용
+/// <summary>
+/// 직렬 병렬 선택가능
+/// 진행도 가져오기 가능
+/// </summary>
 public class L_Task
 {
     public List<Func<Task>> l_fc_task = new List<Func<Task>>();
+    public float Success_Per; //직렬에서만 사용가능
+
+    /// <summary>
+    /// 직렬
+    /// </summary>
+    /// <returns></returns>
     public async Task Invoke_Serial()
     {
-        Debug.Log("직렬스타트");
+        Success_Per = 0;
         for (int i = 0; i < l_fc_task.Count; i++)
         {
             await l_fc_task[i]();
+            Success_Per = (i + 1) / l_fc_task.Count;
         }
-        Debug.Log("직렬엔드");
-
+        Success_Per = 100;
     }
+
+    /// <summary>
+    /// 병렬
+    /// </summary>
+    /// <returns></returns>
     public async Task Invoke_Parallel()
     {
-        Func<Task> fc_task = null;
+        Task[] arr_task = new Task[l_fc_task.Count];
         for (int i = 0; i < l_fc_task.Count; i++)
         {
-            fc_task += l_fc_task[i];
+            arr_task[i] = l_fc_task[i]();
         }
-        Debug.Log("전부 실행");
-        await fc_task();
-        Debug.Log("전부 실행 완료");
+        await Task.WhenAll(l_fc_task);
     }
+
     public void Add(Func<Task> fc)
     {
         if (fc != null)
