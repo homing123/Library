@@ -138,7 +138,7 @@ public class User_Inven : UserData_Server
         if (UserManager.Use_Local)
         {
             var data = await LocalUser_Inven.Add_Remove_byKind(add_info, remove_info);
-            UserManager.UD_Change(data.D_InvenChanged, m_UserInven.D_Inven);
+            D_Inven.Overlap(data.D_InvenChanged);
             ac_InvenChanged?.Invoke();
             return data.Replacement_Info;
         }
@@ -154,7 +154,7 @@ public class User_Inven : UserData_Server
         if (UserManager.Use_Local)
         {
             var data = await LocalUser_Inven.Add_Remove_byKey(add_info, remove_info);
-            UserManager.UD_Change(data.D_InvenChanged, m_UserInven.D_Inven);
+            D_Inven.Overlap(data.D_InvenChanged);
             ac_InvenChanged?.Invoke();
             return data.Replacement_Info;
         }

@@ -68,6 +68,16 @@ public class StoreManager : Manager<StoreManager>
     {
         Buy(Test_StoreID, Test_Count);
     }
+
+    [ContextMenu("로그")]
+    public void Test_Log()
+    {
+        foreach (int key in User_Store.m_UserStore.D_Store.Keys)
+        {
+            User_Store.Store store = User_Store.m_UserStore.D_Store[key];
+            Debug.Log($"Time : {store.Time}, Count : {store.Count}");
+        }
+    }
     #endregion
 }
 #region UD_Store
@@ -119,11 +129,11 @@ public class User_Store : UserData_Server
         if (UserManager.Use_Local)
         {
             var data = await LocalUser_Store.Buy(id, count);
-            D_Store = data.D_Store;
-            UserManager.UD_Change(data.D_InvenChanged, User_Inven.m_UserInven.D_Inven);
+            D_Store.Overlap(data.D_StoreChanged);
+            User_Inven.m_UserInven.D_Inven.Overlap(data.D_InvenChanged);
+            User_Randombox.m_UserRandombox.D_Randombox.Overlap(data.D_RandomboxChanged);
             ac_StoreChanged?.Invoke();
             User_Inven.ac_InvenChanged?.Invoke();
-            User_Randombox.m_UserRandombox.D_Randombox = data.D_Randombox;
             User_Randombox.ac_RandomboxChanged?.Invoke();
             return (data.Reward_Info, data.Replacement_Info);
         }
@@ -143,7 +153,7 @@ public class User_Store : UserData_Server
         if (UserManager.Use_Local)
         {
             var data = await LocalUser_Store.Buy(price_info);
-            UserManager.UD_Change(data, User_Inven.m_UserInven.D_Inven);
+            User_Inven.m_UserInven.D_Inven.Overlap(data);
             User_Inven.ac_InvenChanged?.Invoke();
             ac_buy();
         }
@@ -161,12 +171,13 @@ public class LocalUser_Store
     /// <param name="id"></param>
     /// <param name="count"></param>
     /// <returns></returns>
-    public static async Task<(Dictionary<int, User_Store.Store> D_Store, Dictionary<int,User_Inven.Inven> D_InvenChanged, Dictionary<int,int> D_Randombox, (int kind, int id, int count)[] Reward_Info, (int kind, int id, int count)[] Replacement_Info)> Buy(int id, int count = 1)
+    public static async Task<(Dictionary<int, User_Store.Store> D_StoreChanged, Dictionary<int,User_Inven.Inven> D_InvenChanged, Dictionary<int,int> D_RandomboxChanged, (int kind, int id, int count)[] Reward_Info, (int kind, int id, int count)[] Replacement_Info)> Buy(int id, int count = 1)
     {
         Debug.Log("구매");
         await Task.Delay(GameManager.Instance.TaskDelay);
         User_Store m_userstore = UserManager.Load_LocalUD<User_Store>(User_Store.Path);
         StoreData cur_store = StoreData.Get(id);
+        Dictionary<int, User_Store.Store> d_StoreChanged = new Dictionary<int, User_Store.Store>();
 
         //가격정보 가져오기
         var price_info = cur_store.L_PriceInfo.ToArray().ItemMulCount(count);
@@ -185,6 +196,7 @@ public class LocalUser_Store
                 else
                 {
                     m_userstore.AddLimitCount(id);
+                    d_StoreChanged[id] = m_userstore.D_Store[id];
                 }
             }
 
@@ -198,19 +210,20 @@ public class LocalUser_Store
                 else
                 {
                     m_userstore.AddLockTime(id, cur_time.AddSeconds(cur_store.Lock_Time));
+                    d_StoreChanged[id] = m_userstore.D_Store[id];
                 }
             }
             
 
             //상품목록 생성 및 랜덤박스 오픈
-            var data = await LocalUser_Randombox.Open_Randombox(cur_store.L_RewardInfo.ToArray().ItemMulCount(count));
+            var RandomboxOpenData = await LocalUser_Randombox.Open_Randombox(cur_store.L_RewardInfo.ToArray().ItemMulCount(count));
 
             //가격 지불 및 획득
-            var InvenChangeData = await LocalUser_Inven.Add_Remove_byKind(data.reward_info, price_info);
+            var InvenChangeData = await LocalUser_Inven.Add_Remove_byKind(RandomboxOpenData.reward_info, price_info);
 
             UserManager.Save_LocalUD(User_Store.Path, m_userstore);
             Debug.Log("구매완료");
-            return (m_userstore.D_Store, InvenChangeData.D_InvenChanged, data.d_randombox, data.reward_info, InvenChangeData.Replacement_Info);
+            return (d_StoreChanged, InvenChangeData.D_InvenChanged, RandomboxOpenData.D_RandomboxChanged, RandomboxOpenData.reward_info, InvenChangeData.Replacement_Info);
         }
         else
         {

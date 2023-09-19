@@ -65,12 +65,13 @@ public class LocalUser_Randombox
     /// </summary>
     /// <param name="item_info"></param>
     /// <returns></returns>
-    public static async Task<((int kind, int id, int count)[] reward_info, Dictionary<int, int> d_randombox)> Open_Randombox((int kind, int id, int count)[] item_info)
+    public static async Task<((int kind, int id, int count)[] reward_info, Dictionary<int, int> D_RandomboxChanged)> Open_Randombox((int kind, int id, int count)[] item_info)
     {
         //ex 매개변수 (골드, 박스, 루비)
         //ex return (골드, 루비, 박스결과)
         await Task.Delay(GameManager.Instance.TaskDelay);
         User_Randombox m_userrandombox = UserManager.Load_LocalUD<User_Randombox>(User_Randombox.Path);
+        Dictionary<int, int> d_RandomboxChanged = new Dictionary<int, int>();
 
         List<(int kind, int id, int count)> l_reward_info = new List<(int kind, int id, int count)>(); //보상목록
 
@@ -89,6 +90,7 @@ public class LocalUser_Randombox
 
                     //랜덤박스 오픈
                     l_reward_info.AddRange(m_userrandombox.Get_RandomboxResult(item_info[i].id));
+                    d_RandomboxChanged[item_info[i].id] = m_userrandombox.D_Randombox[item_info[i].id];
                 }
             }
             else
@@ -98,65 +100,7 @@ public class LocalUser_Randombox
         }
         UserManager.Save_LocalUD(User_Randombox.Path, m_userrandombox);
 
-        return (l_reward_info.ToArray(), m_userrandombox.D_Randombox);
-    }
-
-    /// <summary>
-    /// 인벤에서 랜덤상자 사용시 상자 제거 후 상자결과 획득
-    /// </summary>
-    /// <returns></returns>
-    public static async Task<(Dictionary<int, User_Inven.Inven> d_inven, Dictionary<int, int> d_randombox, (int kind, int id, int count)[] Replacement_Info)> Gacha_byInven(int inven_key, int count)
-    {
-        await Task.Delay(GameManager.Instance.TaskDelay);
-
-        User_Randombox m_userrandombox = UserManager.Load_LocalUD<User_Randombox>(User_Randombox.Path);
-        User_Inven m_userinven = UserManager.Load_LocalUD<User_Inven>(User_Inven.Path);
-
-        List<(int kind, int id, int count)> l_rewardinfo = new List<(int kind, int id, int count)>();
-
-        //해당인벤키에 상자있는지 확인
-        if (m_userinven.D_Inven.ContainsKey(inven_key) == false)
-        {
-            throw new Exception("Gacha_byInven Inven null : Inven_Key : " + inven_key);
-        }
-        else if (m_userinven.D_Inven[inven_key].Count < count || m_userinven.D_Inven[inven_key].Kind != (int)E_ItemKind.Randombox)
-        {
-            User_Inven.Inven inven = m_userinven.D_Inven[inven_key];
-            throw new Exception("Gacha_byInven Inven Error : Inven_Key : " + inven_key + " Count : " + count + " ( Inven_kind : " + inven.Kind + " Inven_id : " + inven.Id + " Inven_Count : " + inven.Count + " )");
-        }
-
-        int box_id = m_userinven.D_Inven[inven_key].Id;
-
-        //갯수만큼 결과받기
-        for (int i = 0; i < count; i++)
-        {
-            l_rewardinfo.AddRange(m_userrandombox.Get_RandomboxResult(box_id));
-        }
-
-        //보상 목록에 상자 있을경우 상자 오픈
-        int loopCount = 0;
-        for (int i = 0; i < l_rewardinfo.Count; i++)
-        {
-            if (l_rewardinfo[i].kind == (int)E_ItemKind.Randombox)
-            {
-                for (int j = 0; j < l_rewardinfo[i].count; i++)
-                {
-                    loopCount++;
-                    if (loopCount > 1000)
-                    {
-                        throw new Exception("Randombox Gacha has Infinity Loop ID : " + box_id + " Count : " + count);
-                    }
-                    l_rewardinfo.AddRange(m_userrandombox.Get_RandomboxResult(l_rewardinfo[i].id));
-                }
-                l_rewardinfo.RemoveAt(i);
-                i--;
-            }
-        }
-
-        //인벤에서 보상획득 및 상자 제거
-        var inven_add_data = await LocalUser_Inven.Add_Remove_byKey(l_rewardinfo.ToArray(), (inven_key, count).ToArray());
-
-        return (inven_add_data.D_InvenChanged, m_userrandombox.D_Randombox, inven_add_data.Replacement_Info);
+        return (l_reward_info.ToArray(), d_RandomboxChanged);
     }
 }
 public static class Ex_Randombox

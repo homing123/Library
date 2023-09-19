@@ -44,21 +44,5 @@ public class UserManager
 
         File.WriteAllText(path, JsonConvert.SerializeObject(obj));
     }
-    public static void UD_Change<T>(Dictionary<int, T> server_dic, Dictionary<int, T> user_dic)
-    {
-        Debug.Log("변한거 갯수 : " + server_dic.Count);
-        foreach (int key in server_dic.Keys)
-        {
-            if (server_dic[key] == null)
-            {
-                Debug.Log("UD 제거 : " + key);
-                user_dic.Remove(key);
-            }
-            else
-            {
-                Debug.Log("UD 변경or추가 : " + key);
-                user_dic[key] = server_dic[key];
-            }
-        }
-    }
+
 }

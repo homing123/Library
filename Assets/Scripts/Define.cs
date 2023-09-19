@@ -256,7 +256,14 @@ public static class Ex_Define
     {
         foreach(TKey key in d_overdic.Keys)
         {
-            d_origin[key] = d_overdic[key];
+            if (d_overdic[key] == null)
+            {
+                d_origin.Remove(key);
+            }
+            else
+            {
+                d_origin[key] = d_overdic[key];
+            }
         }
     }
 }

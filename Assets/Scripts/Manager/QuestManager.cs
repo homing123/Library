@@ -199,7 +199,8 @@ public class User_Quest : UserData_Server
     {
         if (UserManager.Use_Local)
         {
-            m_UserQuest.D_Quest = await LocalUser_Quest.Accept(id);
+            var data = await LocalUser_Quest.Accept(id);
+            m_UserQuest.D_Quest.Overlap(data);
             ac_QuestChanged?.Invoke();
         }
         else
@@ -211,7 +212,9 @@ public class User_Quest : UserData_Server
     {
         if (UserManager.Use_Local)
         {
-            m_UserQuest.D_Quest = await LocalUser_Quest.Cancel(id);
+            var data = await LocalUser_Quest.Cancel(id);
+            m_UserQuest.D_Quest.Overlap(data);
+
             ac_QuestChanged?.Invoke();
         }
         else
@@ -225,9 +228,9 @@ public class User_Quest : UserData_Server
         if (UserManager.Use_Local)
         {
             var data = await LocalUser_Quest.Complete(id);
-            m_UserQuest.D_Quest = data.d_quest;
-            UserManager.UD_Change(data.D_InvenChanged, User_Inven.m_UserInven.D_Inven);
-            User_Randombox.m_UserRandombox.D_Randombox = data.d_randombox;
+            m_UserQuest.D_Quest.Overlap(data.D_QuestChanged);
+            User_Inven.m_UserInven.D_Inven.Overlap(data.D_InvenChanged);
+            User_Randombox.m_UserRandombox.D_Randombox.Overlap(data.D_RandomboxChanged);
             ac_QuestChanged?.Invoke();
             User_Inven.ac_InvenChanged?.Invoke();
             User_Randombox.ac_RandomboxChanged?.Invoke();
@@ -322,6 +325,7 @@ public class LocalUser_Quest
     {
         await Task.Delay(GameManager.Instance.TaskDelay);
         User_Quest m_userquest = UserManager.Load_LocalUD<User_Quest>(User_Quest.Path);
+        Dictionary<int, User_Quest.Quest> d_QuestChanged = new Dictionary<int, User_Quest.Quest>();
 
         //퀘스트들 현재 상태 받아오기
         var arr_state = await Get_State(id);
@@ -338,8 +342,8 @@ public class LocalUser_Quest
                 else
                 {
                     m_userquest.D_Quest.Add(id[i], new User_Quest.Quest() { State = E_QuestState.UnCompletable });
-
                 }
+                d_QuestChanged[id[i]] = m_userquest.D_Quest[id[i]];
             }
             else
             {
@@ -348,7 +352,7 @@ public class LocalUser_Quest
         }
 
         UserManager.Save_LocalUD(User_Quest.Path, m_userquest);
-        return m_userquest.D_Quest;
+        return d_QuestChanged;
 
     }
 
@@ -361,12 +365,17 @@ public class LocalUser_Quest
     {
         await Task.Delay(GameManager.Instance.TaskDelay);
         User_Quest m_userquest = UserManager.Load_LocalUD<User_Quest>(User_Quest.Path);
+        Dictionary<int, User_Quest.Quest> d_QuestChanged = new Dictionary<int, User_Quest.Quest>();
+
         for (int i = 0; i < id.Length; i++)
         {
-            m_userquest.D_Quest.Remove(id[i]);
+            if (m_userquest.D_Quest.Remove(id[i]))
+            {
+                d_QuestChanged[id[i]] = null;
+            }
         }
         UserManager.Save_LocalUD(User_Quest.Path, m_userquest);
-        return m_userquest.D_Quest;
+        return d_QuestChanged;
     }
 
     /// <summary>
@@ -374,11 +383,13 @@ public class LocalUser_Quest
     /// </summary>
     /// <param name="id"></param>
     /// <returns></returns>
-    public static async Task<(Dictionary<int, User_Quest.Quest> d_quest,Dictionary<int,User_Inven.Inven> D_InvenChanged, (int kind, int id, int count)[] reward_info, Dictionary<int,int> d_randombox, (int kind, int id, int count)[] Replacement_Info)> Complete(int[] id)
+    public static async Task<(Dictionary<int, User_Quest.Quest> D_QuestChanged,Dictionary<int,User_Inven.Inven> D_InvenChanged, (int kind, int id, int count)[] reward_info, Dictionary<int,int> D_RandomboxChanged, (int kind, int id, int count)[] Replacement_Info)> Complete(int[] id)
     {
         await Task.Delay(GameManager.Instance.TaskDelay);
         User_Quest m_userquest = UserManager.Load_LocalUD<User_Quest>(User_Quest.Path);
         List<(int kind, int id, int count)> l_reward = new List<(int kind, int id, int count)>();
+        Dictionary<int, User_Quest.Quest> d_QuestChanged = new Dictionary<int, User_Quest.Quest>();
+
         //상태 받아오기
         var arr_state = await Get_State(id);
 
@@ -395,6 +406,8 @@ public class LocalUser_Quest
                 {
                     m_userquest.D_Quest.Add(id[i], new User_Quest.Quest() { State = E_QuestState.Complete });
                 }
+
+                d_QuestChanged[id[i]] = m_userquest.D_Quest[i];
                 QuestData cur_quest = QuestData.Get(id[i]);
 
                 //완료보상목록에 추가
@@ -407,13 +420,13 @@ public class LocalUser_Quest
         }
 
         //랜덤박스 있을경우 오픈
-        var data = await LocalUser_Randombox.Open_Randombox(l_reward.ToArray());
+        var RandomboxOpenData = await LocalUser_Randombox.Open_Randombox(l_reward.ToArray());
 
         //보상획득 처리
-        var InvenChangeData = await LocalUser_Inven.Add_Remove_byKind(data.reward_info, null);
+        var InvenChangeData = await LocalUser_Inven.Add_Remove_byKind(RandomboxOpenData.reward_info, null);
 
         UserManager.Save_LocalUD(User_Quest.Path, m_userquest);
-        return (m_userquest.D_Quest, InvenChangeData.D_InvenChanged, data.reward_info, data.d_randombox, InvenChangeData.Replacement_Info);
+        return (d_QuestChanged, InvenChangeData.D_InvenChanged, RandomboxOpenData.reward_info, RandomboxOpenData.D_RandomboxChanged, InvenChangeData.Replacement_Info);
     }
 }
 public static class Ex_Quest
