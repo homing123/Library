@@ -16,15 +16,15 @@ public class AddressableManager : MonoBehaviour
         
     }
 
-    public static GameObject Get(string key)
-    {
-        if (D_Obj.ContainsKey(key))
-        {
+    //public static GameObject Get(string key)
+    //{
+    //    if (D_Obj.ContainsKey(key))
+    //    {
 
-        }
-    }
-    public static async Task<GameObject> Get_Async(string key)
-    {
+    //    }
+    //}
+    //public static async Task<GameObject> Get_Async(string key)
+    //{
         
-    }
+    //}
 }

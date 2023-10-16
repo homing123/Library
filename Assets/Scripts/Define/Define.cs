@@ -146,7 +146,7 @@ public abstract class UserData_Server : UserData
 {
     public UserData_Server()
     {
-        if (GameManager.LoadindStart == false)
+        if (GameManager.LoadingStart == false)
         {
             UserManager.fc_LoadServer += Load;
         }
@@ -158,7 +158,7 @@ public abstract class UserData_Local : UserData
 {
     public UserData_Local()
     {
-        if (GameManager.LoadindStart == false)
+        if (GameManager.LoadingStart == false)
         {
             UserManager.ac_LoadLocal += Load;
         }
