@@ -6,8 +6,9 @@ using System.Threading.Tasks;
 public class GameManager : MonoBehaviour
 {
 
+    [Header("Other")]
     [SerializeField] public int TaskDelay;
-    public static bool LoadindStart = false;
+    public static bool LoadingStart = false;
     public static Action ac_DataLoaded = () =>
     {
         Debug.Log("DataLoaded Action");
@@ -19,6 +20,11 @@ public class GameManager : MonoBehaviour
     public static WaitForSecondsRealtime seconds = new WaitForSecondsRealtime(0.1f);
     private void Awake()
     {
+        if (Instance != null)
+        {
+            Destroy(this.gameObject);
+            return;
+        }
         Instance = this;
         DontDestroyOnLoad(gameObject);
     }
@@ -42,7 +48,7 @@ public class GameManager : MonoBehaviour
         temp = LoginManager.Instance;
         
         //이 이후로 생성되는 유저데이터 클래스는 로딩목록에 추가되지않음 (json할때 생성해서 대입하기 때문에 그때 생성되는 애들은 로딩목록에 추가되면안됨)
-        LoadindStart = true;
+        LoadingStart = true;
 
         //시간
         yield return StartCoroutine(TimeManager.Instance.Get_CurTime());
@@ -65,6 +71,10 @@ public class GameManager : MonoBehaviour
         //스트리밍
         var task = StreamingManager.Load_StreamingData();
         yield return new WaitUntil(() => task.IsCompleted);
+
+        //어드레서블
+        task = AddressableManager.Load();
+        yield return new WaitUntil(() => task.IsCompleted);
         
         //로그인
         if (GameSetting.Login)
@@ -82,7 +92,7 @@ public class GameManager : MonoBehaviour
 
         Debug.Log("완료");
 
-        //SceneHandler.SceneLoad(SceneHandler.PlayScene);
+        SceneHandler.SceneLoad(SceneHandler.PlayScene);
     }
 
     // Update is called once per frame

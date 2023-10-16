@@ -3,6 +3,7 @@ using UnityEngine;
 using System;
 using System.Threading.Tasks;
 using System.IO;
+using Define;
 public class RandomBoxManager : Manager<RandomBoxManager>
 {
     private void Awake()

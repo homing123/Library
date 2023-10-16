@@ -5,55 +5,88 @@ using System.Threading.Tasks;
 using System.IO;
 using System;
 using Newtonsoft.Json;
-public class Define
+using Unity.VisualScripting;
+public enum E_SortDir
 {
-    public static void Init_Canvas(Canvas canvas)
-    {
-        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.additionalShaderChannels = AdditionalCanvasShaderChannels.TexCoord1 | AdditionalCanvasShaderChannels.Normal | AdditionalCanvasShaderChannels.Tangent;
-    }
+    Up = 0,
+    Down = 1,
 }
-public class Math_Define
+public enum E_Layer
 {
-    static int _Get_RandomResult(float[] per)
+    BG = 64,
+    Bio = 128,
+    Map = 256,
+    Effect = 512,
+    Bullet = 1024,
+    BioEnemy = 2048,
+}
+namespace Define
+{
+    public class Extension
     {
-        float total_value = 0;
-        for (int i = 0; i < per.Length; i++)
+        public const int Layer_Map = 8;
+        public static WaitForEndOfFrame waitframe = new WaitForEndOfFrame();
+        public static void Init_Canvas(Canvas canvas)
         {
-            if (per[i] > 0)
-            {
-                total_value += per[i];
-            }
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.additionalShaderChannels = AdditionalCanvasShaderChannels.TexCoord1 | AdditionalCanvasShaderChannels.Normal | AdditionalCanvasShaderChannels.Tangent;
+        }
+        public static Color GetMedian(Color color_1, Color color_2, float value = 0.5f)
+        {
+            return new Color(GetMedian(color_1.r, color_2.r, value), GetMedian(color_1.g, color_2.g, value), GetMedian(color_1.b, color_2.b, value), 1);
+        }
+        public static float GetMedian(float f1, float f2, float value = 0.5f)
+        {
+            return f1 + (f2 - f1) * value;
         }
 
-        float random_value = UnityEngine.Random.Range(0, total_value);
-        for (int i = 0; i < per.Length; i++)
+        public static int GetLayerMask(E_Layer layer)
         {
-            random_value -= per[i];
-            if (random_value < 0)
-            {
-                return i;
-            }
+            return (int)layer;
         }
-        throw new Exception("RandomResult Error : " + total_value + " " + random_value + " " + per.Length);
-    }
-    public static int Get_RandomResult(float[] per)
-    {
-        return _Get_RandomResult(per);
-    }
-    public static int Get_RandomResult(List<float> per)
-    {
-        return _Get_RandomResult(per.ToArray());
+        public static int GetLayerMask(E_Layer layer, E_Layer layer_1)
+        {
+            return (int)(layer | layer_1);
+        }
+        public static int GetLayerMask(E_Layer layer, E_Layer layer_1, E_Layer layer_2)
+        {
+            return (int)(layer | layer_1 | layer_2);
+        }
+
+        //public static int GetEnemyLayerMask(E_Bio biokind)
+        //{
+        //    switch (biokind)
+        //    {
+        //        case E_Bio.Character:
+        //            return (int)E_Layer.BioEnemy;
+        //        case E_Bio.Monster:
+        //        case E_Bio.Boss:
+        //            return (int)E_Layer.Bio;
+        //    }
+        //    return 0;
+        //}
+        public static int GetLayer(E_Layer layer)
+        {
+            switch (layer)
+            {
+                case E_Layer.BG:
+                    return 6;
+                case E_Layer.Bio:
+                    return 7;
+                case E_Layer.Map:
+                    return 8;
+                case E_Layer.Effect:
+                    return 9;
+                case E_Layer.Bullet:
+                    return 10;
+                case E_Layer.BioEnemy:
+                    return 11;
+            }
+            return 0;
+        }
+
     }
 
-    public static float Get_TimeValue(float curtime, float maxtime, float startvalue = 0, float endvalue = 1)
-    {
-        if (maxtime == 0)
-        {
-            return startvalue;
-        }
-        return startvalue + (curtime / maxtime * (endvalue - startvalue));
-    }
 }
 public class Single<T> : MonoBehaviour where T : MonoBehaviour
 {
@@ -193,6 +226,15 @@ public static class Ex_Define
     {
         return new T[] { value };
     }
+    public static List<T> ToList<T>(this T[] arr)
+    {
+        List<T> list = new List<T>(arr.Length);
+        for (int i = 0; i < arr.Length; i++)
+        {
+            list.Add(arr[i]);
+        }
+        return list;
+    }
     public static bool IsNullOrEmptyOrN(this string str)
     {
         if (string.IsNullOrEmpty(str) || str == "N")
@@ -207,7 +249,7 @@ public static class Ex_Define
 
     public static bool Empty<T>(this T[] arr)
     {
-        if(arr == null || arr.Length == 0)
+        if (arr == null || arr.Length == 0)
         {
             return true;
         }
@@ -252,10 +294,10 @@ public static class Ex_Define
             array[j] = temp;
         }
     }
-    public static void Overlap<TKey, TValue>(this Dictionary<TKey, TValue> d_origin, Dictionary<TKey,TValue> d_overdic)
+    public static void Overlap<TKey, TValue>(this Dictionary<TKey, TValue> d_origin, Dictionary<TKey, TValue> d_overdic)
     {
         Debug.Log("µ¤±â °¹¼ö : " + d_overdic.Count);
-        foreach(TKey key in d_overdic.Keys)
+        foreach (TKey key in d_overdic.Keys)
         {
             if (d_overdic[key] == null)
             {
@@ -269,6 +311,92 @@ public static class Ex_Define
             }
         }
     }
+
+    public static Vector3 Vt3(this Vector2 vt2, float z = 0)
+    {
+        return new Vector3(vt2.x, vt2.y, z);
+    }
+    public static Vector2 Vt2(this Vector3 vt3)
+    {
+        return new Vector2(vt3.x, vt3.y);
+    }
+    public static float Angle(this Vector2 vt2)
+    {
+        float angle = 0;
+        if (vt2 == Vector2.zero)
+        {
+            angle = 0;
+        }
+        if (vt2.y == 0)
+        {
+            if (vt2.x > 0)
+            {
+                angle = 0;
+            }
+            else
+            {
+                angle = 180;
+            }
+        }
+        else
+        {
+            float dis = Vector2.Distance(Vector2.zero, vt2);
+            if (vt2.y > 0)
+            {
+                angle = Mathf.Acos(vt2.x / dis) * Mathf.Rad2Deg;
+            }
+            else
+            {
+                angle = Mathf.Acos(-vt2.x / dis) * Mathf.Rad2Deg + 180;
+            }
+        }
+
+        if (angle < 0)
+        {
+            angle += 360;
+        }
+
+        return angle;
+    }
+
+    /// <summary>
+    /// 0~360
+    /// </summary>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    public static float ToAngleValue(this float value)
+    {
+        if (value < 0)
+        {
+            while (true)
+            {
+                value += 360;
+                if (value >= 0)
+                {
+                    return value;
+                }
+            }
+        }
+        else if (value >= 360)
+        {
+            while (true)
+            {
+                value -= 360;
+                if (value <= 360)
+                {
+                    return value;
+                }
+            }
+        }
+        else return value;
+    }
+
+    public static Vector2 AngleToVt2(this float angle)
+    {
+        angle = angle.ToAngleValue();
+        return new Vector2(Mathf.Cos(angle * Mathf.Deg2Rad), Mathf.Sin(angle * Mathf.Deg2Rad));
+    }
+
 }
 
 /// <summary>
@@ -324,4 +452,5 @@ public class L_Task
         }
     }
 }
+
 

@@ -5,6 +5,7 @@ using UnityEditor;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using System.Diagnostics;
+using Define;
 public class Custom_Button : Editor
 {
     [MenuItem("Custom/Delete")]
@@ -58,7 +59,7 @@ public class Custom_Button : Editor
                 canvasGO.layer = LayerMask.NameToLayer("UI");
                 canvasGO.transform.SetParent(Selection.activeGameObject.transform);
                 obj.transform.SetParent(m_canvas.transform);
-                Define.Init_Canvas(m_canvas);
+                Extension.Init_Canvas(m_canvas);
 
             }
             else
@@ -77,7 +78,7 @@ public class Custom_Button : Editor
                 canvasGO.AddComponent<CanvasScaler>();
                 canvasGO.AddComponent<GraphicRaycaster>();
                 canvasGO.layer = LayerMask.NameToLayer("UI");
-                Define.Init_Canvas(m_canvas);
+                Extension.Init_Canvas(m_canvas);
             }
 
             obj.transform.SetParent(m_canvas.transform);

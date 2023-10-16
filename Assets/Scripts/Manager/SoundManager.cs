@@ -2,8 +2,9 @@ using UnityEngine;
 using UnityEngine.Audio;
 using System.Collections.Generic;
 using System.IO;
-public class SoundManager : Manager<SoundManager>
+public class SoundManager : MonoBehaviour
 {
+    public static SoundManager Instance;
     [SerializeField] AudioMixer m_AudioMixer;
 
     public enum E_SoundType
@@ -22,6 +23,12 @@ public class SoundManager : Manager<SoundManager>
 
     private void Awake()
     {
+        if (Instance != null)
+        {
+            Destroy(this.gameObject);
+            return;
+        }
+        Instance = this;
         User_Sound.m_UserSound = new User_Sound();
         m_BGMSource = gameObject.AddComponent<AudioSource>();
         m_BGMSource.loop = true;

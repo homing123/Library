@@ -1,7 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using System.Threading.Tasks;
-
+using Define;
 public class LoginManager : Manager<LoginManager>
 {
     public static bool isLogin = false;
